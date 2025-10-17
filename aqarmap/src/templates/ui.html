@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بحث العقارات الذكي - Real Estate RAG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-box h3 { color: #667eea; font-size: 1.8em; }
+
+        .search-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: border 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-box button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .search-box button:hover { transform: translateY(-2px); }
+        .search-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group { display: flex; flex-direction: column; }
+
+        .filter-group label {
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .results-section { display: grid; gap: 20px; }
+
+        /* Summary Box - Appears First */
+        .summary-box {
+            background: linear-gradient(135deg, #f1f5ff 0%, #e8f0ff 100%);
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 25px;
+            color: #333;
+            line-height: 1.8;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+            margin-bottom: 20px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .summary-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-box .content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .summary-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Property Cards */
+        .property-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .property-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .property-card:hover::before {
+            opacity: 1;
+        }
+
+        .property-rank {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .property-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .property-title {
+            font-size: 1.3em;
+            color: #333;
+            font-weight: 600;
+            flex: 1;
+            padding-right: 50px;
+        }
+
+        .property-price {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .similarity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #28a745;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .similarity-badge.high { background: #28a745; }
+        .similarity-badge.medium { background: #ffc107; color: #333; }
+        .similarity-badge.low { background: #6c757d; }
+
+        .property-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .property-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .property-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .property-location {
+            color: #667eea;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .property-link {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .property-link:hover { background: #764ba2; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.5em;
+            animation: fadeIn 0.3s;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px;
+            background: white;
+            border-radius: 15px;
+            color: #666;
+            font-size: 1.3em;
+        }
+
+        /* Results Header */
+        .results-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .results-header h2 {
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        .sort-info {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .stats { flex-direction: column; gap: 15px; }
+            .search-box { flex-direction: column; }
+            .filters { grid-template-columns: 1fr; }
+            .property-header { flex-direction: column; gap: 15px; }
+            .property-price { align-self: flex-start; }
+            .property-rank { top: 10px; left: 10px; width: 35px; height: 35px; font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 بحث العقارات الذكي</h1>
+            <p style="color: #666;">مدعوم بالذكاء الاصطناعي (RAG + Milvus + Gemini)</p>
+            <div class="stats">
+                <div class="stat-box">
+                    <p style="color: #666;">إجمالي العقارات</p>
+                    <h3 id="total-properties">-</h3>
+                </div>
+                <div class="stat-box">
+                    <p style="color: #666;">نتائج البحث</p>
+                    <h3 id="search-count">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="search-query" placeholder="ابحث عن عقار... (مثال: شقة 3 غرف في القاهرة)" />
+                <button id="search-btn" onclick="searchProperties()">🔍 بحث</button>
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label>نوع الإعلان</label>
+                    <select id="listing-type">
+                        <option value="">الكل</option>
+                        <option value="تمليك">تمليك</option>
+                        <option value="ايجار">إيجار</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>الموقع</label>
+                    <select id="location">
+                        <option value="">الكل</option>
+                        <option value="alexandria">الإسكندرية</option>
+                        <option value="cairo">القاهرة</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>الحد الأدنى للسعر</label>
+                    <input type="number" id="min-price" placeholder="0" />
+                </div>
+
+                <div class="filter-group">
+                    <label>الحد الأقصى للسعر</label>
+                    <input type="number" id="max-price" placeholder="..." />
+                </div>
+
+                <div class="filter-group">
+                    <label>عدد الغرف (على الأقل)</label>
+                    <input type="number" id="min-bedrooms" placeholder="0" />
+                </div>
+
+                <div class="filter-group">
+                    <label>عدد النتائج</label>
+                    <select id="n-results">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="results-section" class="results-section"></div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('total-properties').textContent = data.total_properties.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function searchProperties() {
+            const query = document.getElementById('search-query').value;
+            if (!query.trim()) {
+                alert('الرجاء إدخال نص البحث');
+                return;
+            }
+
+            const resultsSection = document.getElementById('results-section');
+            const searchBtn = document.getElementById('search-btn');
+            
+            searchBtn.disabled = true;
+            searchBtn.textContent = '⏳ جاري البحث...';
+            resultsSection.innerHTML = '<div class="loading">⏳ جاري البحث في قاعدة البيانات...</div>';
+
+            const searchData = {
+                query,
+                n_results: parseInt(document.getElementById('n-results').value),
+                listing_type: document.getElementById('listing-type').value || null,
+                location: document.getElementById('location').value || null,
+                min_price: document.getElementById('min-price').value ? parseFloat(document.getElementById('min-price').value) : null,
+                max_price: document.getElementById('max-price').value ? parseFloat(document.getElementById('max-price').value) : null,
+                min_bedrooms: document.getElementById('min-bedrooms').value ? parseInt(document.getElementById('min-bedrooms').value) : null
+            };
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(searchData)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('search-count').textContent = data.count;
+                    
+                    // Sort by similarity (highest first)
+                    const sortedResults = data.results.sort((a, b) => b.similarity - a.similarity);
+                    
+                    // Show AI summary first, then results
+                    await displayResultsWithSummary(query, sortedResults);
+                } else {
+                    resultsSection.innerHTML = `<div class="no-results">❌ خطأ: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultsSection.innerHTML = `<div class="no-results">❌ خطأ في الاتصال: ${error.message}</div>`;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 بحث';
+            }
+        }
+
+        async function displayResultsWithSummary(query, results) {
+            const resultsSection = document.getElementById('results-section');
+            
+            if (results.length === 0) {
+                resultsSection.innerHTML = `<div class="no-results">😔 لا توجد نتائج مطابقة</div>`;
+                return;
+            }
+
+            // Create summary placeholder first
+            const summaryBox = document.createElement('div');
+            summaryBox.className = 'summary-box';
+            summaryBox.innerHTML = `
+                <h3>
+                    <span>🤖</span>
+                    <span>تحليل ذكي من Gemini AI</span>
+                </h3>
+                <div class="content">
+                    <div class="summary-loading">
+                        <div class="spinner"></div>
+                        <span>جاري تحليل النتائج وتقديم توصيات مخصصة...</span>
+                    </div>
+                </div>
+            `;
+            
+            resultsSection.innerHTML = '';
+            resultsSection.appendChild(summaryBox);
+
+            // Add results header
+            const resultsHeader = document.createElement('div');
+            resultsHeader.className = 'results-header';
+            resultsHeader.innerHTML = `
+                <h2>📊 النتائج المطابقة (${results.length})</h2>
+                <div class="sort-info">مرتبة حسب درجة التطابق ⬇️</div>
+            `;
+            resultsSection.appendChild(resultsHeader);
+
+            // Display property cards
+            results.forEach((property, index) => {
+                const card = createPropertyCard(property, index + 1);
+                resultsSection.appendChild(card);
+            });
+
+            // Generate AI summary (async)
+            generateSummary(query, results, summaryBox);
+        }
+
+        async function generateSummary(query, results, summaryBox) {
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, properties: results })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    summaryBox.querySelector('.content').innerHTML = data.summary;
+                } else {
+                    summaryBox.querySelector('.content').innerHTML = `
+                        <p style="color: #dc3545;">⚠️ فشل توليد التحليل: ${data.error}</p>
+                    `;
+                }
+            } catch (err) {
+                summaryBox.querySelector('.content').innerHTML = `
+                    <p style="color: #dc3545;">⚠️ خطأ أثناء الاتصال بالذكاء الاصطناعي: ${err.message}</p>
+                `;
+            }
+        }
+
+        function createPropertyCard(property, rank) {
+            const card = document.createElement('div');
+            card.className = 'property-card';
+            
+            const similarityClass = property.similarity >= 0.7 ? 'high' : 
+                                   property.similarity >= 0.5 ? 'medium' : 'low';
+            
+            card.innerHTML = `
+                <div class="property-rank">${rank}</div>
+                
+                <div class="property-header">
+                    <div class="property-title">
+                        ${property.title || 'عقار بدون عنوان'}
+                        <div class="similarity-badge ${similarityClass}">
+                            ⭐ تطابق ${(property.similarity * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                    <div class="property-price">
+                        ${property.price_egp ? property.price_egp.toLocaleString() : '0'} جنيه
+                    </div>
+                </div>
+
+                <div class="property-details">
+                    <div class="detail-item">🏠 ${property.property_type || 'غير محدد'}</div>
+                    <div class="detail-item">📋 ${property.listing_type || 'غير محدد'}</div>
+                    ${property.bedrooms ? `<div class="detail-item">🛏️ ${property.bedrooms} غرف</div>` : ''}
+                    ${property.bathrooms ? `<div class="detail-item">🚿 ${property.bathrooms} حمام</div>` : ''}
+                    ${property.area_sqm ? `<div class="detail-item">📐 ${property.area_sqm} م²</div>` : ''}
+                </div>
+
+                <div class="property-description">
+                    ${property.text ? property.text.substring(0, 200) + '...' : 'لا يوجد وصف'}
+                </div>
+
+                <div class="property-footer">
+                    <div class="property-location">
+                        <span>📍</span>
+                        <span>${property.location || 'غير محدد'}</span>
+                    </div>
+                    ${property.url ? `<a href="${property.url}" target="_blank" class="property-link">عرض التفاصيل ←</a>` : ''}
+                </div>
+            `;
+            
+            return card;
+        }
+
+        document.getElementById('search-query').addEventListener('keypress', e => {
+            if (e.key === 'Enter') searchProperties();
+        });
+
+        loadStats();
+    </script>
+</body>
+</html>
