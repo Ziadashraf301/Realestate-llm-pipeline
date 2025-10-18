@@ -16,7 +16,7 @@ This end-to-end real estate intelligence platform automates property data collec
 
 | Category | Metric | Value | Business Impact |
 |----------|--------|-------|-----------------|
-| **Data Scale** | Total Records | 9,260+ | Full dataset including duplicates |
+| **Data Scale** | Total Records | 9,260+ | Full dataset |
 | | Coverage | Alexandria, Cairo | Expandable to other regions |
 | **Accuracy** | Search Accuracy | 70-90% semantic match | High-quality recommendations |
 | | Data Quality | 92% | Strong data integrity |
@@ -41,7 +41,7 @@ This end-to-end real estate intelligence platform automates property data collec
 | **✨ Data Quality** | Arabic text normalization, validation | 92% reliable decisions |
 | **🔍 Semantic Search** | Multilingual embeddings (Arabic/English) | 3x faster discovery |
 | **🤖 RAG + AI** | Gemini 2.0 Flash conversational analysis | 60% higher engagement |
-| **📊 Real-time Analytics** | Power BI dashboards with BigQuery integration | Daily insights |
+| **📊 Analytics** | Power BI dashboards with BigQuery integration | Daily insights |
 | **⚙️ Automated Pipeline** | Dagster orchestration with scheduling | 100% automation |
 | **📈 Scalability** | Support 100K+ properties | Same infrastructure |
 
@@ -57,7 +57,7 @@ This end-to-end real estate intelligence platform automates property data collec
 3. **Transformation** → ETL to analytics-ready mart with quality checks
 4. **Vectorization** → Multilingual embeddings for semantic search
 5. **Intelligence** → RAG-powered search + Gemini AI recommendations
-6. **Analytics** → Power BI dashboards with real-time insights
+6. **Analytics** → Power BI dashboards with insights
 
 ---
 
@@ -78,10 +78,7 @@ This end-to-end real estate intelligence platform automates property data collec
 
 ## 📈 Power BI Analytics Dashboard
 
-### 🔴 [VIEW LIVE INTERACTIVE DASHBOARD →](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f&autoAuth=true&ctid=31a1d3c1-d87f-467c-b74f-3182f780f819)
-
-<iframe title="Real Estate Intelligence Dashboard" width="100%" height="600" src="https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f&autoAuth=true&ctid=31a1d3c1-d87f-467c-b74f-3182f780f819" frameborder="0" allowFullScreen="true"></iframe>
-
+### 🔴 [VIEW LIVE INTERACTIVE DASHBOARD](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f&autoAuth=true&ctid=31a1d3c1-d87f-467c-b74f-3182f780f819)
 ---
 
 ### 📑 6 Dashboard Pages
@@ -373,6 +370,6 @@ real_estate/
 
 ⭐ **Star this repo if you find it useful!**
 
-[📊 Live Dashboard](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f) • [📖 Documentation](./docs) • [🐛 Report Issues](https://github.com/your-repo/issues)
+[📊 Live Dashboard](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f) • [📖 Documentation](./docs)
 
 </div>
