@@ -159,7 +159,6 @@ class AQARMAPRealEstateScraper:
         self.logger.info(f"   🆕 New properties scraped: {new_properties_count}")
         self.logger.info(f"   ⏭️  Skipped (already in BigQuery): {skipped_properties_count}")
         self.logger.info(f"   ❌ Errors: {error_count}")
-        # self.logger.info(f"   📝 Total in BigQuery: {len(self.existing_urls)}")
         self.logger.info("="*60 + "\n")
         
         return self.results
@@ -281,7 +280,7 @@ class AQARMAPRealEstateScraper:
             return property_data
             
         except Exception as e:
-            self.logger.error(f"      Error scraping detail page: {e}")
+            self.logger.error(f"Error scraping detail page: {e}")
             return None
     
     def _extract_specifications(self, soup):
@@ -651,9 +650,6 @@ class AQARMAPRealEstateScraper:
             bigquery.SchemaField("image_count", "INTEGER"),
             
             # Agent information
-            # bigquery.SchemaField("agent_name", "STRING"),
-            # bigquery.SchemaField("agent_phone", "STRING"),
-            # bigquery.SchemaField("agent_whatsAppNumber", "STRING"),
             bigquery.SchemaField("agent_type", "STRING"),
             
             # Timestamps
@@ -707,9 +703,6 @@ class AQARMAPRealEstateScraper:
                 'image_count': len(item.get('images', [])),
                 
                 # Agent information
-                # 'agent_name': item.get('agent_name'),
-                # 'agent_phone': item.get('agent_phone'),
-                # 'agent_whatsAppNumber': item.get('agent_whatsAppNumber'),
                 'agent_type': item.get('agent_type'),
                 
                 # Timestamps

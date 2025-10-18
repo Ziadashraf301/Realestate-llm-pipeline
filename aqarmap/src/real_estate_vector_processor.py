@@ -329,7 +329,7 @@ class RealEstateMilvusProcessor:
                 # Add to batch
                 batch_data["property_id"].append(str(prop_id))
                 batch_data["embedding"].append(embedding.tolist())
-                batch_data["text"].append(text)  # Truncate if too long
+                batch_data["text"].append(text)
                 batch_data["source"].append(str(prop.get('source', '')))
                 batch_data["url"].append(str(prop.get('url', '')))
                 batch_data["title"].append(str(prop.get('title', '')))

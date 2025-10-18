@@ -102,8 +102,8 @@ def search():
 
         query = query.strip()
 
-        listing_type = data.get('listing_type')  # تمليك / ايجار
-        location = data.get('location')          # alexandria / cairo
+        listing_type = data.get('listing_type') 
+        location = data.get('location')
         min_price = data.get('min_price')
         max_price = data.get('max_price')
         min_bedrooms = data.get('min_bedrooms')
@@ -142,7 +142,7 @@ def search():
         # Milvus vector search
         search_params = {
             "metric_type": "COSINE",
-            "params": {"nprobe": 50}
+            "params": {"nprobe": 64}
         }
 
         results = collection.search(
@@ -246,8 +246,8 @@ def generate_summary():
         response = model_ai.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
-                temperature=0.8,  # More creative and conversational
-                max_output_tokens=800,  # Shorter, focused responses
+                temperature=0.8,  
+                max_output_tokens=800,  
             )
         )
         

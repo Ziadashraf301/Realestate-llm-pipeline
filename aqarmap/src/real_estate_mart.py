@@ -366,13 +366,7 @@ class PropertyMartBuilder:
             
             -- Room metrics
             ROUND(AVG(bedrooms), 1) AS avg_bedrooms,
-            ROUND(AVG(bathrooms), 1) AS avg_bathrooms,
-            
-            -- Quality metrics
-            ROUND(AVG(CASE WHEN data_quality = 'complete' THEN 1.0 ELSE 0.0 END) * 100, 1) AS pct_complete_data,
-            ROUND(AVG(CASE WHEN has_coordinates THEN 1.0 ELSE 0.0 END) * 100, 1) AS pct_with_coordinates,
-            
-            MAX(scraped_date) AS last_updated
+            ROUND(AVG(bathrooms), 1) AS avg_bathrooms
             
         FROM `{self.mart_table_ref}`
         WHERE price_egp IS NOT NULL 
@@ -443,7 +437,6 @@ class PropertyMartBuilder:
         SELECT
             scraped_date,
             scraped_year,
-            scraped_month,
             scraped_month_name,
             listing_type,
             
@@ -465,7 +458,7 @@ class PropertyMartBuilder:
         WHERE price_egp IS NOT NULL 
               AND price_egp > 1000
               AND area_sqm IS NOT NULL
-        GROUP BY scraped_date, scraped_year, scraped_month, scraped_month_name, listing_type
+        GROUP BY scraped_date, scraped_year, scraped_month_name, listing_type
         ORDER BY scraped_date DESC, listing_type;
         """
         

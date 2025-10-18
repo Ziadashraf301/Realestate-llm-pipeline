@@ -147,7 +147,7 @@ class VectorProcessorConfig(ConfigurableResource):
 
 
 # ============================================================================
-# SCRAPING ASSETS (unchanged)
+# SCRAPING ASSETS
 # ============================================================================
 
 @asset(
@@ -435,7 +435,7 @@ def property_mart(
     """Transform raw scraped data into cleaned mart table"""
     try:
         context.log.info("🔄 Starting mart table transformation...")
-        context.log.info(f"   New properties from scraping: {scraping_summary.get('total_properties_inserted', 0)}")
+        context.log.info(f"New properties from scraping: {scraping_summary.get('total_properties_inserted', 0)}")
         
         # Initialize mart builder with logging
         mart_builder = PropertyMartBuilder(
@@ -772,9 +772,9 @@ def process_to_milvus(
     """Process properties from Raw table and store in Milvus"""
     try:
         context.log.info("🤖 Starting vector processing from mart...")
-        context.log.info(f"   Data rows: {scraping_summary.get('total_rows', 0)}")
+        context.log.info(f"Data rows: {scraping_summary.get('total_rows', 0)}")
         
-        # Initialize processor (now reading from mart table)
+        # Initialize processor
         processor = RealEstateMilvusProcessor(
             project_id=vector_config.project_id,
             dataset_id=vector_config.dataset_id,  
@@ -808,9 +808,9 @@ def process_to_milvus(
             if prop.get('property_id') not in existing_ids
         ]
         
-        context.log.info(f"   Total in Big Query: {len(all_properties)}")
-        context.log.info(f"   Already in Milvus: {len(all_properties) - len(new_properties)}")
-        context.log.info(f"   New to process: {len(new_properties)}")
+        context.log.info(f"Total in Big Query: {len(all_properties)}")
+        context.log.info(f"Already in Milvus: {len(all_properties) - len(new_properties)}")
+        context.log.info(f"New to process: {len(new_properties)}")
         
         if not new_properties:
             context.log.info("✅ No new properties to process!")
@@ -945,6 +945,7 @@ complete_pipeline_job = define_asset_job(
         "scrape_cairo_for_sale",
         "scrape_cairo_for_rent",
         "scraping_summary",
+
         # Mart transformation
         "property_mart",
         "location_summary",
@@ -953,8 +954,10 @@ complete_pipeline_job = define_asset_job(
         "price_analysis_summary",
         "data_quality_report",
         "mart_transformation_summary",
+
         # Vector processing
         "process_to_milvus",
+
         # Final summary
         "complete_pipeline_summary"
     ]
@@ -1040,6 +1043,7 @@ defs = Definitions(
         scrape_cairo_for_sale,
         scrape_cairo_for_rent,
         scraping_summary,
+
         # Mart transformation assets
         property_mart,
         location_summary,
@@ -1048,8 +1052,10 @@ defs = Definitions(
         price_analysis_summary,
         data_quality_report,
         mart_transformation_summary,
+
         # Vector processing assets
         process_to_milvus,
+        
         # Final summary
         complete_pipeline_summary
     ],
