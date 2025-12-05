@@ -6,7 +6,7 @@
 [![Milvus](https://img.shields.io/badge/Milvus-2.3.3-00ADD8.svg)](https://milvus.io)
 [![BigQuery](https://img.shields.io/badge/BigQuery-Enabled-4285F4.svg)](https://cloud.google.com/bigquery)
 [![Gemini](https://img.shields.io/badge/Gemini-2.0%20Flash-8E75B2.svg)](https://ai.google.dev)
-[![Power BI](https://img.shields.io/badge/Power%20BI-Live%20Dashboard-F2C811.svg)](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f&autoAuth=true&ctid=31a1d3c1-d87f-467c-b74f-3182f780f819)
+[![Power BI](https://img.shields.io/badge/Power%20BI-Live%20Dashboard-F2C811.svg)](https://ziadashraf301.github.io/Business-Intelligence-Portfolio/real_estate)
 
 ## 🎯 Overview
 
@@ -78,7 +78,7 @@ This end-to-end real estate intelligence platform automates property data collec
 
 ## 📈 Power BI Analytics Dashboard
 
-### 🔴 [VIEW LIVE INTERACTIVE DASHBOARD](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f&autoAuth=true&ctid=31a1d3c1-d87f-467c-b74f-3182f780f819)
+### 🔴 [VIEW LIVE INTERACTIVE DASHBOARD](https://ziadashraf301.github.io/Business-Intelligence-Portfolio/real_estate)
 ---
 
 ### 📑 6 Dashboard Pages
@@ -108,7 +108,7 @@ This end-to-end real estate intelligence platform automates property data collec
 **Key Insights:**
 - **Rental vs. Sales Arbitrage Opportunity**: In Alexandria's under-1M price category for apartments:
   - **Rental Market**: 596 properties with average monthly rent of EGP 21,410, larger average area (172 sqm), 2.7 bedrooms, price range EGP 1,500-550,000
-  - **Sales Market**: 100 properties with average price of EGP 791,400, smaller average area (97 sqm), 2.1 bedrooms, price range EGP 300,000-990,000
+  - **Sales Market**: 100 properties with an average price of EGP 791,400, smaller average area (97 sqm), 2.1 bedrooms, price range EGP 300,000-990,000
   - **Investment Insight**: Rental properties offer 77% more space but monthly rent represents only 2.7% of comparable purchase prices, suggesting strong ROI potential for buy-to-let investors
 - **Price Efficiency Gap**: Rental properties show EGP 128/sqm vs. sales at EGP 8,394/sqm in this segment, highlighting different valuation dynamics between rental and ownership markets
 
@@ -370,6 +370,6 @@ real_estate/
 
 ⭐ **Star this repo if you find it useful!**
 
-[📊 Live Dashboard](https://app.powerbi.com/reportEmbed?reportId=a4cdd801-3c8a-49f6-a16f-f67ce4b6de9f) • [📖 Documentation](./docs)
+[📊 Live Dashboard](https://ziadashraf301.github.io/Business-Intelligence-Portfolio/real_estate) • [📖 Documentation](./docs)
 
 </div>
