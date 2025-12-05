@@ -8,7 +8,7 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT))
 
-from src.real_estate_scraper import AQARMAPRealEstateScraper
+from Real_Estate_Data_Pipelines.src.scrapers.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
 import json
 
 # Suppress unnecessary warnings
@@ -23,7 +23,7 @@ tf.get_logger().setLevel('ERROR')
 CONFIG_DIR = PROJECT_ROOT / 'config'
 GOOGLE_APPLICATION_CREDENTIALS = CONFIG_DIR / 'big_query_service_account.json'
 TABLE_CONFIG_PATH = CONFIG_DIR / 'table_config.json'
-LOG_FILE_PATH = PROJECT_ROOT / 'logs/aqarmap_scraper.log'
+LOG_FILE_PATH = PROJECT_ROOT / 'logs'
 
 print("\n" + "=" * 70)
 print("📂 Loading Configuration Files")
@@ -92,7 +92,7 @@ def main():
         project_id=GCP_PROJECT_ID,
         dataset_id=BQ_DATASET_ID,
         table_id=BQ_TABLE_ID,
-        log_file=LOG_FILE_PATH
+        log_dir=LOG_FILE_PATH
     )
     
     # Configuration
@@ -129,30 +129,30 @@ def main():
             print("="*60 + "\n")
             
             # Save to JSON
-            json_file = 'aqarmap/raw_data/alexandria_for_sale.json'
+            json_file = 'Real_Estate_Data_Pipelines/raw_data/alexandria_for_sale.json'
             scraper.save_to_json(json_file)
             print(f"✅ Saved to JSON: {json_file}")
             
-            # Save to BigQuery
-            try:
-                inserted_count = scraper.save_to_bigquery()
+            # # Save to BigQuery
+            # try:
+            #     inserted_count = scraper.save_to_bigquery()
                 
-                if inserted_count > 0:
-                    print(f"✅ Uploaded {inserted_count} properties to BigQuery")
-                else:
-                    print("ℹ️  No new properties uploaded to BigQuery (all were duplicates)")
+            #     if inserted_count > 0:
+            #         print(f"✅ Uploaded {inserted_count} properties to BigQuery")
+            #     else:
+            #         print("ℹ️  No new properties uploaded to BigQuery (all were duplicates)")
                     
-            except Exception as bq_error:
-                print(f"⚠️  BigQuery upload failed: {bq_error}")
-                print("   Data is still saved in JSON format")
+            # except Exception as bq_error:
+            #     print(f"⚠️  BigQuery upload failed: {bq_error}")
+            #     print("   Data is still saved in JSON format")
             
             print(f"\n{'='*60}")
             print("✅ Scraping completed successfully!")
             print("📁 Files created:")
             print(f"   • {json_file}")
             print("   • logs/aqarmap_scraper.log (activity log)")
-            if inserted_count > 0:
-                print(f"   • BigQuery: {GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_TABLE_ID}")
+            # if inserted_count > 0:
+            #     print(f"   • BigQuery: {GCP_PROJECT_ID}.{BQ_DATASET_ID}.{BQ_TABLE_ID}")
             print(f"{'='*60}\n")
         else:
             print("\n⚠️  No new properties found to save")
@@ -161,7 +161,7 @@ def main():
         print("\n\n⚠️  Scraping interrupted by user")
         print("💾 Saving partial results...")
         if scraper.results:
-            scraper.save_to_json('aqarmap/raw_data/aqarmap_scraped_properties_detailed.json')
+            scraper.save_to_json('Real_Estate_Data_Pipelines/raw_data/aqarmap_scraped_properties_detailed.json')
             print("✅ Partial results saved")
         
     except Exception as e:
@@ -173,7 +173,7 @@ def main():
         if scraper.results:
             print("\n💾 Attempting to save partial results...")
             try:
-                scraper.save_to_json('raw_data/aqarmap_scraped_properties_detailed.json')
+                scraper.save_to_json('Real_Estate_Data_Pipelines/aqarmap_scraped_properties_detailed.json')
                 print("✅ Partial results saved")
             except:
                 print("❌ Failed to save partial results")

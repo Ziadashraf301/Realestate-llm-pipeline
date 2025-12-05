@@ -11,13 +11,18 @@ import time
 from datetime import datetime
 import re
 import hashlib
-from src.logger import real_estate_logger
+from logger import LoggerFactory
 from google.cloud import bigquery
 
 class AQARMAPRealEstateScraper:
     """AQARMAP Real Estate Scraper for Egyptian real estate with deep page scraping"""
     
-    def __init__(self, project_id, dataset_id, table_id='scraped_properties', log_file='aqarmap/logs/scraper.log'):
+    def __init__(self, 
+                 project_id, 
+                 dataset_id, 
+                 table_id='scraped_properties', 
+                 log_dir='Real_Estate_Data_Pipelines/logs/'):
+        
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -25,6 +30,7 @@ class AQARMAPRealEstateScraper:
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Referer': 'https://aqarmap.com.eg/',
         })
+        
         self.results = []
         self.base_url = "https://aqarmap.com.eg"
         
@@ -33,7 +39,12 @@ class AQARMAPRealEstateScraper:
         self.dataset_id = dataset_id
         self.table_id = table_id
         self.table_ref = f"{project_id}.{dataset_id}.{table_id}"
+        self.log_dir = log_dir
         
+        # Initialize logger
+        logger_instance = LoggerFactory.create_logger(log_dir=self.log_dir)
+        self.logger = logger_instance.logger
+
         # Initialize BigQuery client
         try:
             self.bq_client = bigquery.Client(project=project_id)
@@ -44,12 +55,7 @@ class AQARMAPRealEstateScraper:
         
         # Load existing URLs from BigQuery
         self.existing_urls = self._load_existing_urls_from_bigquery()
-        
-        # Initialize logger properly
-        logger_instance = real_estate_logger(log_file=log_file)
-        self.logger = logger_instance.logger
-    
-    
+
     def _load_existing_urls_from_bigquery(self):
         """Load existing property URLs from BigQuery"""
         try:

@@ -20,7 +20,7 @@ from pymilvus import (
     DataType,
     Collection,
 )
-from src.logger import real_estate_logger
+from Real_Estate_Data_Pipelines.src.scrapers.logger.logger import real_estate_logger
 
 
 class RealEstateMilvusProcessor:
