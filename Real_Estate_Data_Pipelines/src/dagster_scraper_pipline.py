@@ -111,7 +111,7 @@ from dagster import (
     RetryPolicy,
 )
 from pydantic import Field
-from Real_Estate_Data_Pipelines.src.scrapers.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
+from Real_Estate_Data_Pipelines.src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
 from src.real_estate_vector_processor import RealEstateMilvusProcessor
 from src.real_estate_mart import PropertyMartBuilder
 

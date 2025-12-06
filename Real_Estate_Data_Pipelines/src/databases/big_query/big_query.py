@@ -4,7 +4,8 @@ from google.cloud.exceptions import NotFound
 import tempfile
 import json as json_lib
 from datetime import datetime
-from .db_models import PropertySchema, PropertyModel
+from .schemes import PropertySchema
+from ..db_models import PropertyModel
 import os
 
 class Big_Query_Database():
@@ -33,7 +34,7 @@ class Big_Query_Database():
             raise
 
 
-    def _load_existing_urls_from_bigquery(self):
+    def _load_existing_urls_from_database(self):
         """Load existing property URLs from BigQuery"""
         try:
             query = f"""
@@ -65,7 +66,7 @@ class Big_Query_Database():
 
         table_exists = self.check_table_exists()
 
-        # Create table if it doesn't exist
+        # Create table if not exists
         if not table_exists:
             try:
                 table = bigquery.Table(self.table_ref, schema=PropertySchema)
@@ -76,7 +77,7 @@ class Big_Query_Database():
                 self.logger.error(f"❌ Failed to create table: {e}")
                 return 0
 
-    def save_to_bigquery(self, results):
+    def save_to_database(self, results):
         """Save results to BigQuery using batch load (free tier compatible)"""
         if not results:
             self.logger.warning("No data to save")

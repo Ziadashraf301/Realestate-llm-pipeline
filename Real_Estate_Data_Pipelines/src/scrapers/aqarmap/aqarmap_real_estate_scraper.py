@@ -1,7 +1,5 @@
 """
 AQARMAP Real Estate Scraper - Extracts Complete Property Data From https://aqarmap.com.eg
-Scrapes both listing cards AND individual property pages for comprehensive data
-Features: BigQuery deduplication, logging
 """
 
 import requests
@@ -16,9 +14,7 @@ from src.logger import LoggerFactory
 class AQARMAPRealEstateScraper:
     """AQARMAP Real Estate Scraper for Egyptian real estate with deep page scraping"""
     
-    def __init__(self, 
-                 db_client,
-                 log_dir='Real_Estate_Data_Pipelines/logs/'):
+    def __init__(self, db_client, log_dir='Real_Estate_Data_Pipelines/logs/'):
         
         self.session = requests.Session()
         self.session.headers.update({
@@ -31,28 +27,17 @@ class AQARMAPRealEstateScraper:
         self.results = []
         self.base_url = "https://aqarmap.com.eg"
 
-        self.log_dir = log_dir
-        
         # Initialize logger
+        self.log_dir = log_dir
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
         self.db_client = db_client
-        
-        # Load existing URLs from BigQuery
-        self.existing_urls = self.db_client._load_existing_urls_from_bigquery()
 
-    def _is_already_in_bigquery(self, url):
-        """Check if URL already exists in BigQuery"""
-        return url in self.existing_urls
-    
-    def _add_to_existing_urls(self, url):
-        """Add URL to the in-memory cache of existing URLs"""
-        self.existing_urls.add(url)
+        self.existing_urls = self.db_client._load_existing_urls_from_database()
+
 
     def scrape_aqarmap(self, city='alexandria', listing_type='for-sale', max_pages=2):
         """Main scraping method"""
-        self.logger.info("\n" + "="*60)
         self.logger.info(f"🏠 Scraping Aqarmap: {city} - {listing_type}")
-        self.logger.info("="*60 + "\n")
         
         new_properties_count = 0
         skipped_properties_count = 0
@@ -99,7 +84,7 @@ class AQARMAPRealEstateScraper:
                 for idx, prop_url in enumerate(property_urls, 1):
                     try:
                         # Check if already in BigQuery
-                        if self._is_already_in_bigquery(prop_url):
+                        if prop_url in self.existing_urls:
                             self.logger.info(f"   [{idx}/{len(property_urls)}] ⏭️  Skipped (already in BigQuery): {prop_url[:60]}...")
                             skipped_properties_count += 1
                             continue
@@ -109,7 +94,7 @@ class AQARMAPRealEstateScraper:
                         
                         if property_data:
                             self.results.append(property_data)
-                            self._add_to_existing_urls(prop_url)
+                            self.existing_urls.add(prop_url)
                             new_properties_count += 1
                             self.logger.info(f"      ✅ {property_data['title'][:50]}...")
                         else:
@@ -128,12 +113,10 @@ class AQARMAPRealEstateScraper:
                 break
         
         # Final summary
-        self.logger.info("\n" + "="*60)
         self.logger.info("📊 Scraping Summary:")
         self.logger.info(f"   🆕 New properties scraped: {new_properties_count}")
         self.logger.info(f"   ⏭️  Skipped (already in BigQuery): {skipped_properties_count}")
         self.logger.info(f"   ❌ Errors: {error_count}")
-        self.logger.info("="*60 + "\n")
         
         return self.results
     
@@ -489,82 +472,3 @@ class AQARMAPRealEstateScraper:
                     return ptype
         
         return 'شقة'
-    
-    def print_summary(self):
-        """Print detailed summary"""
-        if not self.results:
-            self.logger.warning("\n❌ No data scraped")
-            return
-        
-        self.logger.info(f"\n{'='*60}")
-        self.logger.info("📊 SCRAPING SUMMARY")
-        self.logger.info("="*60)
-        self.logger.info(f"Total listings: {len(self.results)}")
-        
-        # Property types
-        types = {}
-        for listing in self.results:
-            ptype = listing.get('property_type', 'unknown')
-            types[ptype] = types.get(ptype, 0) + 1
-        
-        self.logger.info("\n📋 By Property Type:")
-        for ptype, count in sorted(types.items(), key=lambda x: x[1], reverse=True):
-            self.logger.info(f"  • {ptype}: {count}")
-        
-        # Price statistics
-        prices = [l['price_egp'] for l in self.results if l.get('price_egp')]
-        if prices:
-            self.logger.info("\n💰 Price Statistics (EGP):")
-            self.logger.info(f"  • Min: {min(prices):,.0f}")
-            self.logger.info(f"  • Max: {max(prices):,.0f}")
-            self.logger.info(f"  • Avg: {sum(prices)/len(prices):,.0f}")
-        
-        # Data completeness
-        fields = ['bedrooms', 'bathrooms', 'area_sqm', 'description', 'images']
-        self.logger.info("\n📈 Data Completeness:")
-        for field in fields:
-            count = sum(1 for l in self.results if l.get(field))
-            percentage = (count / len(self.results)) * 100
-            self.logger.info(f"  • {field}: {count}/{len(self.results)} ({percentage:.1f}%)")
-        
-        # Sample listings
-        self.logger.info(f"\n{'='*60}")
-        self.logger.info("📋 SAMPLE LISTINGS (first 3)")
-        self.logger.info("="*60 + "\n")
-        
-        for i, listing in enumerate(self.results[:3], 1):
-            self.logger.info(f"{i}. {listing['title'][:70]}")
-            self.logger.info(f"   💰 Price: {listing.get('price_text', 'N/A')}")
-            self.logger.info(f"   📍 Location: {listing['location'][:50]}")
-            self.logger.info(f"   🏠 Type: {listing['property_type']}")
-            if listing.get('bedrooms'):
-                self.logger.info(f"   🛏️  {listing.get('bedrooms')} beds | 🚿 {listing.get('bathrooms')} baths | 📐 {listing.get('area_sqm')} m²")
-            self.logger.info(f"   🔗 {listing['url'][:70]}...")
-            if listing.get('images'):
-                self.logger.info(f"   📸 Images: {len(listing['images'])}")
-            self.logger.info("")
-    
-    def save_to_json(self, filename='scraped_properties_detailed.json'):
-        """Save results to JSON (append mode)"""
-        import os
-        
-        # Load existing data if file exists
-        existing_data = []
-        if os.path.exists(filename):
-            try:
-                with open(filename, 'r', encoding='utf-8') as f:
-                    existing_data = json.load(f)
-            except json.JSONDecodeError:
-                self.logger.warning(f"Could not read existing {filename}, starting fresh")
-        
-        # Merge new results with existing (avoid duplicates by property_id)
-        existing_ids = {item.get('property_id') for item in existing_data}
-        new_items = [item for item in self.results if item.get('property_id') not in existing_ids]
-        
-        combined_data = existing_data + new_items
-        
-        # Save combined data
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(combined_data, f, indent=2, ensure_ascii=False)
-        
-        self.logger.info(f"✅ Added {len(new_items)} new properties to {filename} (Total: {len(combined_data)})")

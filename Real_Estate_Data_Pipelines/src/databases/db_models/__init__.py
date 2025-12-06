@@ -1,1 +1,1 @@
-from .PropertyModel import PropertySchema, PropertyModel
+from .PropertyModel import PropertyModel
