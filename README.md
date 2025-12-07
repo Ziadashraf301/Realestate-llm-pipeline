@@ -93,7 +93,7 @@ This end-to-end real estate intelligence platform automates property data collec
 | 6 | **Time Series & Trends** 📈 | Monthly trends, Growth rates (MoM/YoY) | Temporal patterns |
 
 #### Page 1: Executive Dashboard 🎯
-![Executive Dashboard](./Docs/images/powerbi-executive.png)
+![Executive Dashboard](./docs/images/powerbi-executive.png)
 
 **Key Insights:**
 - **Market Pricing Overview**: Average property price stands at EGP 5.65M with significant variance (Range: EGP 1K - 727.5M, Median: EGP 900K), indicating a highly diverse market with opportunities across all price segments
