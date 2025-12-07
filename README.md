@@ -49,7 +49,7 @@ This end-to-end real estate intelligence platform automates property data collec
 
 ## 🏗️ Architecture & Pipeline
 
-![Architecture Diagram](./Docs/images/architecture.png)
+![Architecture Diagram](./docs/images/architecture.png)
 
 **Data Flow:**
 1. **Collection** → Automated AQARMAP scraping with deduplication
@@ -65,13 +65,13 @@ This end-to-end real estate intelligence platform automates property data collec
 
 | Component | Preview |
 |-----------|---------|
-| **Dagster Pipeline** | ![Dagster](./Docs/images/dagster-pipeline.png) |
+| **Dagster Pipeline** | ![Dagster](./docs/images/dagster-pipeline.png) |
 | | *Automated orchestration with monitoring* |
-| **Search Interface** | ![Search UI](./Docs/images/search-ui.png) |
+| **Search Interface** | ![Search UI](./docs/images/search-ui.png) |
 | | *Natural language search in Arabic* |
-| **AI Recommendations** | ![AI](./Docs/images/ai-recommendations.png) |
+| **AI Recommendations** | ![AI](./docs/images/ai-recommendations.png) |
 | | *Gemini 2.0 Flash contextual analysis* |
-| **Search Results** | ![Results](./Docs/images/search-results.png) |
+| **Search Results** | ![Results](./docs/images/search-results.png) |
 | | *Semantic similarity matching* |
 
 ---
