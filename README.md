@@ -93,7 +93,7 @@ This end-to-end real estate intelligence platform automates property data collec
 | 6 | **Time Series & Trends** 📈 | Monthly trends, Growth rates (MoM/YoY) | Temporal patterns |
 
 #### Page 1: Executive Dashboard 🎯
-![Executive Dashboard](./Docs/images/powerbi-executive.png)
+![Executive Dashboard](./docs/images/powerbi-executive.png)
 
 **Key Insights:**
 - **Market Pricing Overview**: Average property price stands at EGP 5.65M with significant variance (Range: EGP 1K - 727.5M, Median: EGP 900K), indicating a highly diverse market with opportunities across all price segments
@@ -103,7 +103,7 @@ This end-to-end real estate intelligence platform automates property data collec
 - **Geographic Premium**: Cairo emerges as the most expensive city, reflecting its status as the capital and economic hub
 
 #### Page 2: Market Analysis 📊
-![Market Dashboard](./Docs/images/powerbi-market.png)
+![Market Dashboard](./docs/images/powerbi-market.png)
 
 **Key Insights:**
 - **Rental vs. Sales Arbitrage Opportunity**: In Alexandria's under-1M price category for apartments:
@@ -113,7 +113,7 @@ This end-to-end real estate intelligence platform automates property data collec
 - **Price Efficiency Gap**: Rental properties show EGP 128/sqm vs. sales at EGP 8,394/sqm in this segment, highlighting different valuation dynamics between rental and ownership markets
 
 #### Page 3: Location Intelligence 🗺️
-![Location Dashboard](./Docs/images/powerbi-location.png)
+![Location Dashboard](./docs/images/powerbi-location.png)
 
 **Key Insights:**
 - **Market Share Distribution**: Cairo dominates with 56% of total listings (4,507 properties), while Alexandria accounts for 44% (3,494 properties)
@@ -126,7 +126,7 @@ This end-to-end real estate intelligence platform automates property data collec
 - **Regional Dynamics**: Cairo properties are larger (321 sqm vs. 165 sqm for rentals) and command premium pricing (4x higher rental rates, 16% higher price/sqm), reflecting its position as the economic capital
 
 #### Page 4: Data Quality 🔍
-![Quality Dashboard](./Docs/images/powerbi-quality.png)
+![Quality Dashboard](./docs/images/powerbi-quality.png)
 
 **Data Quality Metrics:**
 
@@ -148,7 +148,7 @@ This end-to-end real estate intelligence platform automates property data collec
 **Quality Assessment**: The dataset demonstrates strong reliability with 92%+ average field completeness, enabling confident analytics and decision-making. Minor improvement opportunities exist in bedroom/bathroom data capture.
 
 #### Page 5: Property Type Deep Dive 🏘️
-![Property Dashboard](./Docs/images/powerbi-property.png)
+![Property Dashboard](./docs/images/powerbi-property.png)
 
 **Apartment Sales Analysis (تمليك - شقة):**
 
@@ -167,7 +167,7 @@ This end-to-end real estate intelligence platform automates property data collec
 - **Investment Entry Point**: 1BR apartments offer the lowest entry barrier at EGP 3.20M with consistent pricing (low std deviation: EGP 1.78M)
 
 #### Page 6: Time Series & Trends 📈
-![Scraper Dashboard](./Docs/images/powerbi-scraper.png)
+![Scraper Dashboard](./docs/images/powerbi-scraper.png)
 
 **October 2025 Scraping Trends:**
 
