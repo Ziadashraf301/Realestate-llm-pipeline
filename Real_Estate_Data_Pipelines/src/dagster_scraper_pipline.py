@@ -112,8 +112,8 @@ from dagster import (
 )
 from pydantic import Field
 from Real_Estate_Data_Pipelines.src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
-from src.real_estate_vector_processor import RealEstateMilvusProcessor
-from src.real_estate_mart import PropertyMartBuilder
+from Real_Estate_Data_Pipelines.src.etl.vectors_builder.real_estate_vector_processor import RealEstateMilvusProcessor
+from Real_Estate_Data_Pipelines.src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
 
 
 class ScraperConfig(ConfigurableResource):
@@ -448,7 +448,7 @@ def property_mart(
         )
         
         # Run Create Mart table
-        total_rows = mart_builder.create_mart_table()
+        total_rows = mart_builder.create_mart()
         
         context.log.info(f"✅ Mart table created with total {total_rows:,} rows")
         
@@ -495,7 +495,7 @@ def location_summary(
             log_file=mart_config.log_file
         )
         
-        mart_builder._create_location_summary()
+        mart_builder.create_location_summary_mart()
         
         context.log.info("✅ Location summary snapshot created successfully")
         
@@ -538,7 +538,7 @@ def property_type_summary(
             log_file=mart_config.log_file
         )
         
-        mart_builder._create_property_type_summary()
+        mart_builder.create_property_type_summary_mart()
         
         context.log.info("✅ Property type summary snapshot created successfully")
         
@@ -581,7 +581,7 @@ def time_series_summary(
             log_file=mart_config.log_file
         )
         
-        mart_builder._create_time_series_summary()
+        mart_builder.create_time_series_summary_mart()
         
         context.log.info("✅ Time series summary snapshot created successfully")
         
@@ -624,7 +624,7 @@ def price_analysis_summary(
             log_file=mart_config.log_file
         )
         
-        mart_builder._create_price_analysis_summary()
+        mart_builder.create_price_analysis_summary_mart()
         
         context.log.info("✅ Price analysis summary snapshot created successfully")
         
@@ -667,7 +667,7 @@ def data_quality_report(
             log_file=mart_config.log_file
         )
         
-        mart_builder.create_data_quality_report()
+        mart_builder.create_data_quality_report_mart()
         
         context.log.info("✅ Data quality report snapshot created successfully")
         

@@ -23,7 +23,7 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT))
 
-from src.real_estate_vector_processor import RealEstateMilvusProcessor
+from Real_Estate_Data_Pipelines.src.etl.vectors_builder.real_estate_vector_processor import RealEstateMilvusProcessor
 import json
 
 # Suppress unnecessary warnings

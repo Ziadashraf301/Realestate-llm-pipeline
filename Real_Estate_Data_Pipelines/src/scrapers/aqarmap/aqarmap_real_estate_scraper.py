@@ -32,7 +32,7 @@ class AQARMAPRealEstateScraper:
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
         self.db_client = db_client
 
-        self.existing_urls = self.db_client._load_existing_urls_from_database()
+        self.existing_urls = self.db_client.load_existing_urls_from_database()
 
 
     def scrape_aqarmap(self, city='alexandria', listing_type='for-sale', max_pages=2):

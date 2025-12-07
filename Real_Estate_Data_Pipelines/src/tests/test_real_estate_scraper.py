@@ -1,16 +1,17 @@
 import os
+import warnings
 from pathlib import Path
 from src.scrapers import AQARMAPRealEstateScraper
-import warnings
 from src.config import Config
 from src.databases import Big_Query_Database
 from src.logger import LoggerFactory
 from src.helpers import save_to_json, scraper_report
 
+
 def test_scrapers_operations():
-    """Main execution"""
-    
-    # Set Dir
+    """Execute the enhanced scraping pipeline with structured logging"""
+
+    # Path Configuration
     PROJECT_ROOT = Path(__file__).resolve().parents[3]
     CONFIG_DIR = PROJECT_ROOT / "Configs"
     CONFIG_PATH = CONFIG_DIR / "Real_Estate_Data_Pipelines.json"
@@ -19,116 +20,105 @@ def test_scrapers_operations():
     # Load Config
     cfg = Config(CONFIG_PATH)
 
-    # Initialize logger
+    # Initialize Logger
     logger = LoggerFactory.create_logger(log_dir=cfg.LOG_DIR)
 
     logger.info("""
     ╔══════════════════════════════════════════════════════════╗
-    ║   Enhanced Egyptian Real Estate Scraper v2.0             ║
-    ║   Features: URL tracking, logging, skip duplicates       ║
-    ║   Storage: JSON + BigQuery                               ║
+    ║   🏠 Egyptian Real Estate Scraper v2.0                   ║
+    ║   Features: URL tracking, structured logs, BQ storage    ║
+    ║   Target: Raw dataset ingestion                          ║
     ╚══════════════════════════════════════════════════════════╝
     """)
 
-    # Suppress unnecessary warnings
     warnings.filterwarnings("ignore")
 
-    # Set env variables dynamically
+    # Set Environment Variables
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(GOOGLE_APPLICATION_CREDENTIALS)
-    os.environ["GCP_PROJECT_ID"] = cfg.GCP_PROJECT_ID
-    os.environ["BQ_DATASET_ID"] = cfg.BQ_RAW_DATASET_ID
-    os.environ["BQ_TABLE_ID"] = cfg.BQ_RAW_TABLE_ID
-    json_file = 'C:/Users/MSI/OneDrive/Desktop/real_estate/Real_Estate_Data_Pipelines/raw_data/alexandria_for_sale.json'
 
-    # Log
-    logger.info(f"✅ Configuration loaded dynamically from:{CONFIG_PATH}")
-    logger.info(f"GCP_PROJECT_ID: {cfg.GCP_PROJECT_ID}")
-    logger.info(f"BQ_DATASET_ID: {cfg.BQ_RAW_DATASET_ID}")
-    logger.info(f"BQ_TABLE_ID: {cfg.BQ_RAW_TABLE_ID}")
+    logger.info(f"✅ Loaded configuration from {CONFIG_PATH}")
 
+    # Initialize BigQuery Database Client
     bg_database = Big_Query_Database(
-        project_id=os.environ["GCP_PROJECT_ID"],
-        dataset_id=os.environ["BQ_DATASET_ID"],
-        table_id=os.environ["BQ_TABLE_ID"],
-        log_dir=cfg.LOG_DIR, 
+        project_id=cfg.GCP_PROJECT_ID,
+        raw_dataset_id=cfg.BQ_RAW_DATASET_ID,
+        raw_table_id=cfg.BQ_RAW_TABLE_ID,
+        log_dir=cfg.LOG_DIR,
     )
 
+    # Initialize Scraper
     scraper = AQARMAPRealEstateScraper(
         log_dir=cfg.LOG_DIR,
         db_client=bg_database
     )
-    
-    # Configuration
-    CITY = 'alexandria'           # cairo, alexandria, giza, etc.
-    LISTING_TYPE = 'for-sale'     # for-sale or for-rent
-    MAX_PAGES = cfg.MAX_PAGES                # Number of pages to scrape
-    
-    logger.info(f"⚙️  Configuration:")
+
+    # Scraper Configuration
+    CITY = "alexandria"
+    LISTING_TYPE = "for-sale"
+    MAX_PAGES = cfg.MAX_PAGES
+
+    OUTPUT_JSON = PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
+
+    logger.info("⚙️  Scraper Configuration:")
     logger.info(f"  • City: {CITY}")
-    logger.info(f"  • Type: {LISTING_TYPE}")
-    logger.info(f"  • Pages: {MAX_PAGES}")
+    logger.info(f"  • Listing Type: {LISTING_TYPE}")
+    logger.info(f"  • Max Pages: {MAX_PAGES}")
     logger.info(f"  • Deep scraping: ENABLED")
-    logger.info(f"  • URL tracking: ENABLED")
-    logger.info(f"  • Logging: ENABLED")
-    
+    logger.info(f"  • URL tracking: ENABLED\n")
+
+    # START SCRAPING
+    logger.info("🚀 Starting AQARMAP scraping process...\n")
+
     try:
-        # Scrape
-        logger.info("🔄 Starting scraping process...\n")
         scraper.scrape_aqarmap(
             city=CITY,
             listing_type=LISTING_TYPE,
             max_pages=MAX_PAGES
         )
-        
-        # print summary
+
         scraper_report(results=scraper.results, logger=logger)
-        
-        # Save results
+
+        # SAVE RESULTS
         if scraper.results:
-            logger.info("💾 Saving results...")
-            
-            # Save to JSON
-            save_to_json(filename=json_file, results=scraper.results, logger=logger)
-            logger.info(f"✅ Saved to JSON: {json_file}")
-            
+            logger.info("💾 Saving scraped properties...")
+
+            # Save JSON
+            save_to_json(filename=str(OUTPUT_JSON), results=scraper.results, logger=logger)
+            logger.info(f"✅ Saved JSON → {OUTPUT_JSON}")
+
             # Save to BigQuery
             try:
                 inserted_count = bg_database.save_to_database(scraper.results)
-                
                 if inserted_count > 0:
-                    logger.info(f"✅ Uploaded {inserted_count} properties to BigQuery")
+                    logger.info(f"✅ Inserted {inserted_count} new properties into BigQuery")
                 else:
-                    logger.info("ℹ️  No new properties uploaded to BigQuery (all were duplicates)")
-                    
-            except Exception as bq_error:
-                logger.warning(f"⚠️  BigQuery upload failed: {bq_error}")
-                logger.info("   Data is still saved in JSON format")
-            
-            logger.info("✅ Scraping completed successfully!")
-            logger.info("📁 Files created:")
-            logger.info(f"{json_file}")
-            logger.info("logs/aqarmap_scraper.log (activity log)")
-        else:
-            logger.warning("⚠️  No new properties found to save")
-        
-    except KeyboardInterrupt:
-        logger.warning("⚠️  Scraping interrupted by user")
-        logger.info("💾  Saving partial results...")
-        if scraper.results:
-            save_to_json(filename=json_file, results=scraper.results, logger=logger)
-            logger.info("✅ Partial results saved")
-        
-    except Exception as e:
-        logger.error(f"❌ Error during scraping: {e}")
+                    logger.info("ℹ️  No new properties uploaded (all duplicates)")
+            except Exception as upload_error:
+                logger.warning(f"⚠️ BigQuery upload failed: {upload_error}")
+                logger.info("   Data is still preserved in JSON")
 
-        # Try to save any results collected before the error
+            logger.info("🎉 Scraping completed successfully!")
+
+        else:
+            logger.warning("⚠️ No properties found to save")
+
+    except KeyboardInterrupt:
+        logger.warning("⛔ Scraping manually interrupted!")
         if scraper.results:
-            logger.info("💾 Attempting to save partial results...")
+            save_to_json(filename=str(OUTPUT_JSON), results=scraper.results, logger=logger)
+            logger.info("💾 Partial results saved before exit")
+
+    except Exception as e:
+        logger.error(f"❌ Unexpected scraper error: {e}")
+
+        if scraper.results:
             try:
-                scraper.save_to_json('C:/Users/MSI/OneDrive/Desktop/real_estate/Real_Estate_Data_Pipelines/raw_data/aqarmap_scraped_properties_detailed.json')
-                logger.info("✅ Partial results saved")
+                fallback_path = OUTPUT_JSON.with_name("aqarmap_partial_fallback.json")
+                save_to_json(filename=str(fallback_path), results=scraper.results, logger=logger)
+                logger.info(f"💾 Partial results saved → {fallback_path}")
             except:
-                logger.warning("❌ Failed to save partial results")
+                logger.error("❌ Failed to save partial results")
+
 
 
 if __name__ == "__main__":
