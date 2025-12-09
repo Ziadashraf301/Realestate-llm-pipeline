@@ -41,7 +41,7 @@ def test_mart_builder_operations():
     logger.info(f"✅ Loaded configuration from {CONFIG_PATH}")
 
     # Initialize database client
-    bg_database = Big_Query_Database(
+    database = Big_Query_Database(
         project_id=cfg.GCP_PROJECT_ID,
         raw_dataset_id=cfg.BQ_RAW_DATASET_ID,
         raw_table_id=cfg.BQ_RAW_TABLE_ID,
@@ -50,10 +50,12 @@ def test_mart_builder_operations():
         log_dir=cfg.LOG_DIR,
     )
 
+    database.connect()
+
     # Initialize mart builder
     mart_builder = PropertyMartBuilder(
         log_dir=cfg.LOG_DIR,
-        db_client=bg_database
+        db=database
     )
 
     logger.info("🚀 Starting mart building pipeline...\n")

@@ -14,7 +14,7 @@ from src.logger import LoggerFactory
 class AQARMAPRealEstateScraper:
     """AQARMAP Real Estate Scraper for Egyptian real estate with deep page scraping"""
     
-    def __init__(self, db_client, log_dir='Real_Estate_Data_Pipelines/logs/'):
+    def __init__(self, db, log_dir='Real_Estate_Data_Pipelines/logs/'):
         
         self.session = requests.Session()
         self.session.headers.update({
@@ -30,7 +30,13 @@ class AQARMAPRealEstateScraper:
         # Initialize logger
         self.log_dir = log_dir
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
-        self.db_client = db_client
+
+        # Check the database connection
+        if db.client is None:
+            self.logger.error("Database connection failed")
+            raise ConnectionError("Database connection failed")
+        else:
+            self.db_client = db
 
         self.existing_urls = self.db_client.load_existing_urls_from_database()
 

@@ -39,17 +39,19 @@ def test_scrapers_operations():
     logger.info(f"✅ Loaded configuration from {CONFIG_PATH}")
 
     # Initialize BigQuery Database Client
-    bg_database = Big_Query_Database(
+    database = Big_Query_Database(
         project_id=cfg.GCP_PROJECT_ID,
         raw_dataset_id=cfg.BQ_RAW_DATASET_ID,
         raw_table_id=cfg.BQ_RAW_TABLE_ID,
         log_dir=cfg.LOG_DIR,
     )
+    
+    database.connect()
 
     # Initialize Scraper
     scraper = AQARMAPRealEstateScraper(
         log_dir=cfg.LOG_DIR,
-        db_client=bg_database
+        db=database
     )
 
     # Scraper Configuration
@@ -88,7 +90,7 @@ def test_scrapers_operations():
 
             # Save to BigQuery
             try:
-                inserted_count = bg_database.save_to_database(scraper.results)
+                inserted_count = database.save_to_database(scraper.results)
                 if inserted_count > 0:
                     logger.info(f"✅ Inserted {inserted_count} new properties into BigQuery")
                 else:
@@ -118,7 +120,6 @@ def test_scrapers_operations():
                 logger.info(f"💾 Partial results saved → {fallback_path}")
             except:
                 logger.error("❌ Failed to save partial results")
-
 
 
 if __name__ == "__main__":

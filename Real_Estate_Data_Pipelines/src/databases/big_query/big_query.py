@@ -31,11 +31,13 @@ class Big_Query_Database():
         
         # Initialize logger
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
+        self.client = None
 
+    def connect(self):
         # Initialize BigQuery client
         try:
-            self.bq_client = bigquery.Client(project=project_id)
-            self.logger.info(f"✅ Connected to BigQuery project: {project_id}")
+            self.client = bigquery.Client(project=self.project_id)
+            self.logger.info(f"✅ Connected to BigQuery project: {self.project_id}")
         except Exception as e:
             self.logger.info(f"❌ Failed to connect to BigQuery: {e}")
             raise
@@ -44,22 +46,22 @@ class Big_Query_Database():
     def create_dataset_if_not_exists(self, project_id, dataset_id):
         """Creates the dataset if it doesn't exist."""
         try:
-            self.bq_client.get_dataset(f"{project_id}.{dataset_id}")
+            self.client.get_dataset(f"{project_id}.{dataset_id}")
             self.logger.info(f"✅ Dataset {dataset_id} exists")
         except Exception:
             dataset = bigquery.Dataset(f"{project_id}.{dataset_id}")
             dataset.location = "US"
-            self.bq_client.create_dataset(dataset)
+            self.client.create_dataset(dataset)
             self.logger.info(f"✅ Created dataset: {dataset_id}")
 
 
     def create_table_if_not_exists(self, table_ref, schema):
         try:
-            self.bq_client.get_table(table_ref)
+            self.client.get_table(table_ref)
             self.logger.info(f"✅ Table {table_ref} exists")
         except Exception as e:
             table = bigquery.Table(table_ref, schema=schema)
-            table = self.bq_client.create_table(table)
+            table = self.client.create_table(table)
             self.logger.info(f"✅ Created table {table_ref}")
 
 
@@ -143,7 +145,7 @@ class Big_Query_Database():
             
             # Load data from file
             with open(temp_file_path, 'rb') as source_file:
-                load_job = self.bq_client.load_table_from_file(
+                load_job = self.client.load_table_from_file(
                     source_file,
                     self.raw_table_ref,
                     job_config=job_config
@@ -179,7 +181,7 @@ class Big_Query_Database():
                 FROM `{self.raw_table_ref}`
             """
             self.logger.info("🔍 Loading existing URLs from BigQuery...")
-            query_job = self.bq_client.query(query)
+            query_job = self.client.query(query)
             existing_urls = {row.url for row in query_job.result()}
             self.logger.info(f"📂 Loaded {len(existing_urls)} existing URLs from BigQuery")
             return existing_urls
@@ -422,11 +424,11 @@ class Big_Query_Database():
         """
 
         try:
-            self.bq_client.query(query)
+            self.client.query(query)
             
             # Get row count
             time.sleep(3)
-            row_count = self.bq_client.get_table(self.mart_table_ref).num_rows
+            row_count = self.client.get_table(self.mart_table_ref).num_rows
             self.logger.info(f"✅ Mart table updated: {self.mart_table_ref}")
             self.logger.info(f"📊 Total rows: {row_count:,}")
             return row_count
@@ -475,7 +477,7 @@ class Big_Query_Database():
         """
         
         try:
-            self.bq_client.query(query)
+            self.client.query(query)
             self.logger.info(f"✅ Location summary created: {summary_ref}")
         except Exception as e:
             self.logger.error(f"⚠️ Error creating location summary: {str(e)}")
@@ -518,7 +520,7 @@ class Big_Query_Database():
         """
         
         try:
-            self.bq_client.query(query)
+            self.client.query(query)
             self.logger.info(f"✅ Property type summary created: {summary_ref}")
         except Exception as e:
             self.logger.error(f"⚠️ Error creating property type summary: {str(e)}")
@@ -559,7 +561,7 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.bq_client.query(query)
+            job = self.client.query(query)
             job.result()
             self.logger.info(f"✅ Time series summary created: {summary_ref}")
         except Exception as e:
@@ -612,7 +614,7 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.bq_client.query(query)
+            job = self.client.query(query)
             job.result()
             self.logger.info(f"✅ Price analysis summary created: {summary_ref}")
         except Exception as e:
@@ -722,12 +724,12 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.bq_client.query(query)
+            job = self.client.query(query)
             job.result()
             self.logger.info(f"✅ Data quality report created: {report_ref}")
             
             # Print the report
-            results = self.bq_client.query(f"SELECT * FROM `{report_ref}`").result()
+            results = self.client.query(f"SELECT * FROM `{report_ref}`").result()
             self.logger.info("\n" + "=" * 60)
             self.logger.info("DATA QUALITY REPORT")
             self.logger.info("=" * 60)

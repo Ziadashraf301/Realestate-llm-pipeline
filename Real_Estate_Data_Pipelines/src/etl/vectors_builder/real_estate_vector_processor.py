@@ -12,18 +12,10 @@ tf.get_logger().setLevel('ERROR')
 from google.cloud import bigquery
 import re
 from sentence_transformers import SentenceTransformer
-from pymilvus import (
-    connections,
-    utility,
-    FieldSchema,
-    CollectionSchema,
-    DataType,
-    Collection,
-)
-from Real_Estate_Data_Pipelines.src.scrapers.logger.logger import real_estate_logger
+from src.logger import LoggerFactory
 
 
-class RealEstateMilvusProcessor:
+class PropertyVectorBuilder:
     """Preprocesses real estate data and stores in Milvus vector database"""
     
     def __init__(self, project_id, dataset_id, table_id='scraped_properties',
@@ -58,79 +50,14 @@ class RealEstateMilvusProcessor:
         self.model = SentenceTransformer(embedding_model)
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
         
-        # Connect to Milvus
-        self.logger.info(f"💾 Connecting to Milvus at {milvus_host}:{milvus_port}...")
-        connections.connect(
-            alias="default",
-            host=milvus_host,
-            port=milvus_port
-        )
+
         
         # Create or get collection
         self.collection_name = "real_estate_properties"
         self.collection = self._create_collection()
         
         self.logger.info("✅ Initialization complete!\n")
-    
-    def _create_collection(self):
-        """Create Milvus collection with schema"""
-        
-        # Check if collection exists
-        if utility.has_collection(self.collection_name):
-            self.logger.info(f"📂 Collection '{self.collection_name}' already exists")
-            collection = Collection(self.collection_name)
-            collection.load()
-            return collection
-        
-        # Define schema
-        fields = [
-            FieldSchema(name="property_id", dtype=DataType.VARCHAR, is_primary=True, max_length=100),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.embedding_dim),
-            FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
-            FieldSchema(name="source", dtype=DataType.VARCHAR, max_length=200),
-            FieldSchema(name="url", dtype=DataType.VARCHAR, max_length=500),
-            FieldSchema(name="title", dtype=DataType.VARCHAR, max_length=500),
-            FieldSchema(name="property_type", dtype=DataType.VARCHAR, max_length=100),
-            FieldSchema(name="listing_type", dtype=DataType.VARCHAR, max_length=50),
-            FieldSchema(name="location", dtype=DataType.VARCHAR, max_length=200),
-            FieldSchema(name="price_egp", dtype=DataType.FLOAT),
-            FieldSchema(name="bedrooms", dtype=DataType.INT64),
-            FieldSchema(name="bathrooms", dtype=DataType.INT64),
-            FieldSchema(name="area_sqm", dtype=DataType.FLOAT),
-            FieldSchema(name="floor_number", dtype=DataType.INT64),
-            FieldSchema(name="latitude", dtype=DataType.FLOAT),
-            FieldSchema(name="longitude", dtype=DataType.FLOAT),
-        ]
-        
-        schema = CollectionSchema(
-            fields=fields,
-            description="Egyptian real estate properties from AQARMAP"
-        )
-        
-        # Create collection
-        self.logger.info(f"🆕 Creating new collection '{self.collection_name}'...")
-        collection = Collection(
-            name=self.collection_name,
-            schema=schema,
-            using='default'
-        )
-        
-        # Create index for vector field
-        index_params = {
-            "metric_type": "COSINE",
-            "index_type": "IVF_FLAT",
-            "params": {"nlist": 128}
-        }
-        
-        collection.create_index(
-            field_name="embedding",
-            index_params=index_params
-        )
-        
-        self.logger.info("✅ Collection created successfully!")
-        collection.load()
-        
-        return collection
+
     
     def load_from_bigquery(self, limit=None):
         """
@@ -416,17 +343,3 @@ class RealEstateMilvusProcessor:
             
             self.logger.info(f"   🔗 {entity.get('url', 'N/A')[:70]}...")
             self.logger.info(f"   📊 Distance: {hit.distance:.3f}\n")
-    
-    def get_collection_stats(self):
-        """Get statistics about the vector database"""
-        count = self.collection.num_entities
-        
-        self.logger.info(f"\n{'='*60}")
-        self.logger.info("📊 Milvus Vector Database Statistics")
-        self.logger.info("="*60)
-        self.logger.info(f"Total properties: {count}")
-        self.logger.info(f"Collection name: {self.collection_name}")
-        self.logger.info(f"Embedding dimension: {self.embedding_dim}")
-        self.logger.info("="*60 + "\n")
-        
-        return count

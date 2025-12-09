@@ -1,0 +1,1 @@
+from .PropertyVectorsSchema import get_property_schema
