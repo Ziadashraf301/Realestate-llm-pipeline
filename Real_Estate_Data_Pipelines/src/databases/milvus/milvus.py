@@ -1,21 +1,17 @@
+from pymilvus import MilvusClient
+from typing import List, Dict, Any
 from src.logger import LoggerFactory
-from schemes import get_property_schema
-from pymilvus import (
-    MilvusClient,
-    utility,
-    FieldSchema,
-    CollectionSchema,
-    DataType,
-    Collection,
-)
+from .schemes import get_property_schema
+from ..db_models import PropertyVectorsModel
 
 class Milvus_VectorDatabase():
+
     def __init__(self, log_dir, milvus_host, milvus_port, 
                  collection_name, embedding_dim=768):
         self.log_dir = log_dir
         self.milvus_uri = f"http://{milvus_host}:{milvus_port}"
-        self.collection_name = collection_name
         self.embedding_dim = embedding_dim
+        self.collection_name = f"{collection_name}_{self.embedding_dim}"
 
         # Initialize logger
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
@@ -45,14 +41,14 @@ class Milvus_VectorDatabase():
         try:
             # Check if collection exists
             if self.client.has_collection(self.collection_name):
-                self.logger.info(f"📂 Collection '{self.collection_name}' already exists")
+                self.logger.info(f"📂 Collection {self.collection_name} already exists")
                 
                 # Load collection for querying
                 self.client.load_collection(self.collection_name)
-                self.logger.info(f"✅ Collection '{self.collection_name}' loaded and ready")
+                self.logger.info(f"✅ Collection {self.collection_name} loaded and ready")
                 return
             
-            self.logger.info(f"🆕 Creating new collection '{self.collection_name}'...")
+            self.logger.info(f"🆕 Creating new collection {self.collection_name}...")
             
             # Create schema using client API
             schema = self.client.create_schema(
@@ -62,11 +58,11 @@ class Milvus_VectorDatabase():
             )
             
             # Add fields to schema
-            schema_fields = self._get_property_schema()
-            for field in schema_fields:
+            schema_fields = get_property_schema(self.embedding_dim)
+            for field in schema_fields["fields"]:
                 schema.add_field(**field)
             
-            self.logger.info(f"📋 Schema created with {len(schema_fields)} fields")
+            self.logger.info(f"📋 Schema created with {len(schema_fields["fields"])} fields")
             
             # Create index for vector field
             index_params = self.client.prepare_index_params()
@@ -134,3 +130,79 @@ class Milvus_VectorDatabase():
             raise
 
     
+    def insert_properties(self, properties: List[Dict[str, Any]], 
+                         batch_size: int = 1000) -> Dict[str, Any]:
+        """
+        Insert properties with validation and batching.
+        
+        Returns:
+            Dict with statistics: {'total', 'inserted', 'failed', 'failed_records'}
+        """
+        if not self.client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        
+        if not properties:
+            self.logger.warning("No properties to insert")
+            return {'total': 0, 'inserted': 0, 'failed': 0, 'failed_records': []}
+        
+        
+        total_inserted = 0
+        failed_records = []
+        total_batches = (len(properties) + batch_size - 1) // batch_size
+        
+        self.logger.info(f"📥 Inserting {len(properties):,} properties...")
+        
+        for i in range(0, len(properties), batch_size):
+            batch = properties[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            batch_validated = []
+            
+            # Validate batch
+            for prop in batch:
+                try:
+                    validated = PropertyVectorsModel(**prop)
+                    batch_validated.append(validated.model_dump())
+                except Exception as e:
+                    self.logger.warning(f"Validation failed for {prop.get('property_id')}: {e}")
+                    failed_records.append({
+                        'property_id': prop.get('property_id'),
+                        'error': str(e)
+                    })
+            
+            # Insert validated batch
+            if batch_validated:
+                try:
+                    result = self.client.insert(
+                        collection_name=self.collection_name,
+                        data=batch_validated
+                    )
+                    inserted = result.get('insert_count', len(batch_validated))
+                    total_inserted += inserted
+                    
+                    if batch_num % 10 == 0 or batch_num == total_batches:
+                        self.logger.info(
+                            f"   Batch {batch_num}/{total_batches}: "
+                            f"{total_inserted:,} inserted"
+                        )
+                except Exception as e:
+                    self.logger.error(f"❌ Batch {batch_num} insert failed: {e}")
+                    for prop in batch_validated:
+                        failed_records.append({
+                            'property_id': prop.get('property_id'),
+                            'error': f"Insert failed: {str(e)}"
+                        })
+        
+        success_rate = (total_inserted / len(properties) * 100) if properties else 0
+        
+        self.logger.info(f"✅ Insert complete: {total_inserted:,}/{len(properties):,} "
+                        f"({success_rate:.1f}% success)")
+        
+        if failed_records:
+            self.logger.warning(f"⚠️ {len(failed_records)} records failed")
+        
+        return {
+            'total': len(properties),
+            'inserted': total_inserted,
+            'failed': len(failed_records),
+            'failed_records': failed_records
+        }

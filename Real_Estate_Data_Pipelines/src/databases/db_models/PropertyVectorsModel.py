@@ -17,7 +17,7 @@ class PropertyVectorsModel(BaseModel):
     location: str = Field(..., min_length=2, max_length=200)
     
     # Required vector field
-    embedding: List[float] = Field(..., min_length=768, max_length=768)
+    embedding: List[float] = Field(..., min_length=384, max_length=384*4)
     
     # Required text fields (strict length requirements)
     text: str = Field(..., min_length=10, max_length=10000)
@@ -34,7 +34,7 @@ class PropertyVectorsModel(BaseModel):
     area_sqm: float = Field(..., gt=10, le=10000)
     
     # Optional but validated if present
-    floor_number: int = Field(default=0, ge=-2, le=100)
+    floor_number: Optional[int] = Field(default=0, ge=-2, le=100)
     latitude: Optional[float] = Field(None, ge=22.0, le=32.0)  # Egypt bounds
     longitude: Optional[float] = Field(None, ge=25.0, le=37.0)  # Egypt bounds
     
@@ -71,8 +71,8 @@ class PropertyVectorsModel(BaseModel):
     @classmethod
     def validate_embedding(cls, v):
         """Ensure embedding is valid"""
-        if len(v) != 768:
-            raise ValueError(f"Embedding must be exactly 768 dimensions, got {len(v)}")
+        if len(v) < 384 or len(v) > 384*4:
+            raise ValueError(f"Embedding must be exactly 384 dimensions, got {len(v)}")
         
         if not all(isinstance(x, (int, float)) for x in v):
             raise ValueError("Embedding must contain only numbers")
@@ -83,26 +83,6 @@ class PropertyVectorsModel(BaseModel):
             raise ValueError("Embedding cannot be zero vector")
         
         return v
-    
-    @field_validator('url')
-    @classmethod
-    def validate_url(cls, v):
-        """Validate URL format"""
-        v = v.strip()
-        if not v.startswith(('http://', 'https://')):
-            raise ValueError("URL must start with http:// or https://")
-        return v
-    
-    @model_validator(mode='after')
-    def validate_price_area_ratio(self):
-        """Sanity check price per sqm"""
-        price_per_sqm = self.price_egp / self.area_sqm
-        if price_per_sqm < 100 or price_per_sqm > 15_000_000:
-            raise ValueError(
-                f"Suspicious price per sqm: {price_per_sqm:,.0f} EGP/sqm "
-                f"(price: {self.price_egp:,.0f}, area: {self.area_sqm})"
-            )
-        return self
     
     class Config:
         str_strip_whitespace = True

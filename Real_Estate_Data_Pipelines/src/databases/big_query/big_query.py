@@ -190,6 +190,71 @@ class Big_Query_Database():
             self.logger.info(f"⚠️  Could not load existing URLs (table may not exist yet): {e}")
             return set()
 
+    
+    def get_validated_properties_for_vectordb(self, limit=None):
+        """
+        Pull ONLY validated, high-quality properties from BigQuery mart for Vector Database.
+        
+        Args:
+            limit: Maximum number of rows (None for all)
+            
+        Returns:
+            List of validated property dicts ready for vectorization
+        """
+        if not self.client:
+            raise RuntimeError("Not connected to BigQuery")
+        
+        self.logger.info("🔍 Fetching validated properties from BigQuery mart...")
+        
+        limit_clause = f"LIMIT {limit}" if limit else ""
+        
+        query = f"""
+        SELECT
+            property_id,
+            source,
+            url,
+            title,
+            description,
+            address,
+            property_type,
+            listing_type,
+            location,
+            price_egp,
+            bedrooms,
+            bathrooms,
+            area_sqm,
+            floor_number,
+            latitude,
+            longitude
+            
+        FROM `{self.mart_table_ref}`
+        WHERE 
+            -- Quality filters
+            data_quality = 'complete'
+            AND has_description = true
+            AND price_egp > 1000
+            AND area_sqm >= 10
+            AND bedrooms BETWEEN 0 AND 25
+            AND bathrooms BETWEEN 0 AND 15
+            AND LENGTH(title) >= 3
+            AND LENGTH(description) >= 10
+        
+        {limit_clause}
+        """
+        
+        try:
+            query_job = self.client.query(query)
+            results = query_job.result()
+            
+            properties = [dict(row.items()) for row in results]
+            
+            self.logger.info(f"✅ Retrieved {len(properties):,} validated properties")
+            return properties
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to fetch properties: {e}")
+            raise
+    
 
     def create_mart_table(self):
         """Creates partitioned mart table with comprehensive data cleaning and enrichment."""
@@ -280,7 +345,7 @@ class Big_Query_Database():
                 CASE 
                     WHEN SAFE_CAST(floor_number AS INT64) BETWEEN -2 AND 100 
                     THEN SAFE_CAST(floor_number AS INT64) 
-                    ELSE NULL 
+                    ELSE 0 
                 END AS floor_number,
                 
                 -- Geospatial validation

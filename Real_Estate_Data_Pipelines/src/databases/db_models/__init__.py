@@ -1,1 +1,2 @@
 from .PropertyModel import PropertyModel
+from .PropertyVectorsModel import PropertyVectorsModel

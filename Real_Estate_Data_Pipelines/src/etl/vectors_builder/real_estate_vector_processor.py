@@ -4,342 +4,155 @@ Loads data from BigQuery, preprocesses text, generates embeddings, and stores in
 """
 import warnings
 import tensorflow as tf
+from tqdm import tqdm
+from typing import List, Dict, Any, Optional
 
 # Suppress unnecessary warnings
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel('ERROR')
 
-from google.cloud import bigquery
-import re
-from sentence_transformers import SentenceTransformer
+import json
+from pathlib import Path
 from src.logger import LoggerFactory
 
 
 class PropertyVectorBuilder:
     """Preprocesses real estate data and stores in Milvus vector database"""
     
-    def __init__(self, project_id, dataset_id, table_id='scraped_properties',
-                 milvus_host='localhost', milvus_port='19530',
-                 embedding_model='all-MiniLM-L6-v2'):
+    def __init__(self, log_dir, 
+                 rdbms_client,  
+                 vectordb_client, 
+                 text_preprocessor,
+                 embedding_service):
         """
         Initialize processor
         
         Args:
-            project_id: GCP project ID
-            dataset_id: BigQuery dataset ID
-            table_id: BigQuery table name
-            milvus_host: Milvus server host
-            milvus_port: Milvus server port
             embedding_model: Sentence transformer model name
         """
-        self.project_id = project_id
-        self.dataset_id = dataset_id
-        self.table_id = table_id
-        self.table_ref = f"{project_id}.{dataset_id}.{table_id}"
         
         # Initialize logger
-        logger_instance = real_estate_logger(log_file='C:/Users/MSI/OneDrive/Desktop/prtofolio/real_estate/aqarmap/logs/vector.log')
-        self.logger = logger_instance.logger
-        
-        # Initialize BigQuery client
-        self.logger.info(f"📌 Connecting to BigQuery...")
-        self.bq_client = bigquery.Client(project=project_id)
-        
-        # Initialize embedding model
-        self.logger.info(f"🤖 Loading embedding model: {embedding_model}...")
-        self.model = SentenceTransformer(embedding_model)
-        self.embedding_dim = self.model.get_sentence_embedding_dimension()
-        
+        self.log_dir = log_dir
+        self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
+        self.preprocessor = text_preprocessor
+        self.embedder = embedding_service
 
-        
-        # Create or get collection
-        self.collection_name = "real_estate_properties"
-        self.collection = self._create_collection()
-        
-        self.logger.info("✅ Initialization complete!\n")
+        # Check the RDBMS connection
+        if rdbms_client.client is None:
+            self.logger.error("Relational Database connection failed")
+            raise ConnectionError("Relational Database connection failed")
+        else:
+            self.rdbms_client = rdbms_client
+
+        # Check the Vectordb connection
+        if vectordb_client.client is None:
+            self.logger.error("Vector Database connection failed")
+            raise ConnectionError("Vector Database connection failed")
+        else:
+            self.vectordb_client = vectordb_client
 
     
-    def load_from_bigquery(self, limit=None):
+    def transform_properties(self, properties: List[Dict]) -> List[Dict]:
         """
-        Load property data from BigQuery
-        
-        Args:
-            limit: Maximum number of rows to load (None for all)
-        
-        Returns:
-            List of property dictionaries
+        Transform properties: create searchable text + generate embeddings.
         """
-        query = f"""
-            SELECT 
-                property_id,
-                source,
-                url,
-                title,
-                description,
-                price_egp,
-                price_text,
-                currency,
-                property_type,
-                listing_type,
-                bedrooms,
-                bathrooms,
-                area_sqm,
-                floor_number,
-                location,
-                address,
-                latitude,
-                longitude,
-                last_updated,
-                images,
-                image_count,
-                agent_type,
-                scraped_at
-            FROM `{self.table_ref}`
-        """
+        from tqdm import tqdm
         
-        if limit:
-            query += f" LIMIT {limit}"
+        transformed = []
         
-        self.logger.info(f"📊 Loading data from BigQuery...")
-        query_job = self.bq_client.query(query)
-        results = query_job.result()
-        
-        properties = []
-        for row in results:
-            prop = dict(row.items())
-            properties.append(prop)
-        
-        self.logger.info(f"✅ Loaded {len(properties)} properties\n")
-        return properties
-    
-    def preprocess_text(self, prop):
-        """
-        Preprocess and create searchable text from property data
-        
-        Args:
-            prop: Property dictionary
-        
-        Returns:
-            Cleaned and formatted text string
-        """
-        text_parts = []
-        
-        # Title
-        if prop.get('title'):
-            text_parts.append(f"{self.clean_text(prop['title'])}")
-        
-        # Property type and listing type
-        if prop.get('property_type'):
-            text_parts.append(f"{prop['property_type']}")
-        
-        if prop.get('listing_type'):
-            text_parts.append(f"{prop['listing_type']}")
-        
-        # Price
-        if prop.get('price_egp'):
-            text_parts.append(f"{prop['price_egp']:,.0f} جنيه")
-        
-        # Location
-        if prop.get('location'):
-            text_parts.append(f"{prop['location']}")
-        
-        if prop.get('address'):
-            text_parts.append(f"{self.clean_text(prop['address'])}")
-        
-        # Property details
-        details = []
-        if prop.get('bedrooms'):
-            details.append(f"{prop['bedrooms']} غرف")
-        if prop.get('bathrooms'):
-            details.append(f"{prop['bathrooms']} حمام")
-        if prop.get('area_sqm'):
-            details.append(f"{prop['area_sqm']} متر مربع")
-        if prop.get('floor_number'):
-            details.append(f"{prop['floor_number']} ادوار")
-        
-        if details:
-            text_parts.append(f"{' '.join(details)}")
-        
-        # Description
-        if prop.get('description'):
-            text_parts.append(f"{self.clean_text(prop['description'])}")
-        
-        return " ".join(text_parts)
-    
-    def clean_text(self, text):
-        """
-        Clean Arabic real estate text:
-        - Replace bullets with readable dashes
-        - Normalize Arabic letters
-        - Remove Arabic commas, slashes, emojis, and extra symbols
-        - Keep Arabic, English, numbers, and key punctuation
-        """
-        if not text:
-            return ""
-
-        text = str(text)
-
-        # Replace bullets and unusual dots with spaced hyphens
-        text = re.sub(r'[▪•●◼◾▫◽]', ' ', text)
-
-        # Replace newlines/tabs with a single space
-        text = re.sub(r'[\n\r\t]+', ' ', text)
-
-        # Normalize Arabic letters
-        text = re.sub(r'[إأآا]', 'ا', text)
-        text = re.sub(r'[يى]', 'ي', text)
-        text = re.sub(r'[ؤئ]', 'ء', text)
-
-        # Remove Arabic commas, slashes, emojis, and other unwanted symbols
-        text = re.sub(r'[،/!؟💰:()+%.,-]', ' ', text)
-
-        # Keep only allowed characters: Arabic, English, digits, and basic punctuation
-        text = re.sub(r'[^\w\s\u0600-\u06FF]', '', text)
-
-        # Collapse multiple spaces
-        text = re.sub(r'\s+', ' ', text)
-
-        return text.strip()
-    
-    def process_and_store(self, properties, batch_size=100):
-        """
-        Process properties and store in Milvus vector database
-        
-        Args:
-            properties: List of property dictionaries
-            batch_size: Number of properties to process at once
-        
-        Returns:
-            Number of properties stored
-        """
-        self.logger.info(f"🔄 Processing {len(properties)} properties...")
-        
-        stored_count = 0
-        
-        for i in range(0, len(properties), batch_size):
-            batch = properties[i:i + batch_size]
-            
-            # Prepare batch data
-            batch_data = {
-                "property_id": [],
-                "embedding": [],
-                "text": [],
-                "source": [],
-                "url": [],
-                "title": [],
-                "property_type": [],
-                "listing_type": [],
-                "location": [],
-                "price_egp": [],
-                "bedrooms": [],
-                "bathrooms": [],
-                "area_sqm": [],
-                "floor_number": [],
-                "latitude": [],
-                "longitude": []
-            }
-            
-            for prop in batch:
-                # Create unique ID
-                prop_id = prop.get('property_id')
-                if not prop_id:
-                    continue
+        for prop in tqdm(properties, desc="Processing"):
+            try:
+                # Create searchable text
+                text = self.preprocessor.create_searchable_text(prop)
                 
-                # Preprocess text
-                text = self.preprocess_text(prop)
-                if not text:
+                if not text or len(text) < 10:
+                    self.logger.warning(
+                        f"Property {prop.get('property_id')} has insufficient text"
+                    )
                     continue
                 
                 # Generate embedding
-                embedding = self.model.encode(text, convert_to_numpy=True, normalize_embeddings=True,)
+                embedding = self.embedder.encode(text, normalize=True)
                 
-                # Add to batch
-                batch_data["property_id"].append(str(prop_id))
-                batch_data["embedding"].append(embedding.tolist())
-                batch_data["text"].append(text)
-                batch_data["source"].append(str(prop.get('source', '')))
-                batch_data["url"].append(str(prop.get('url', '')))
-                batch_data["title"].append(str(prop.get('title', '')))
-                batch_data["property_type"].append(str(prop.get('property_type', '')))
-                batch_data["listing_type"].append(str(prop.get('listing_type', '')))
-                batch_data["location"].append(str(prop.get('location', '')))
-                batch_data["price_egp"].append(float(prop.get('price_egp', 0)) if prop.get('price_egp') else 0.0)
-                batch_data["bedrooms"].append(int(prop.get('bedrooms', 0)) if prop.get('bedrooms') else 0)
-                batch_data["bathrooms"].append(int(prop.get('bathrooms', 0)) if prop.get('bathrooms') else 0)
-                batch_data["area_sqm"].append(float(prop.get('area_sqm', 0)) if prop.get('area_sqm') else 0.0)
-                batch_data["floor_number"].append(int(prop.get('floor_number', 0)) if prop.get('floor_number') else 0)
-                batch_data["latitude"].append(float(prop.get('latitude', 0)) if prop.get('latitude') else 31)
-                batch_data["longitude"].append(float(prop.get('longitude', 0)) if prop.get('longitude') else 29)
-            
-            # Insert batch into Milvus
-            if batch_data["property_id"]:
-                try:
-                    self.collection.insert(list(batch_data.values()))
-                    self.collection.flush()
-                    stored_count += len(batch_data["property_id"])
-                    self.logger.info(f"  ✅ Processed batch {i//batch_size + 1}: {len(batch_data['property_id'])} properties")
-                except Exception as e:
-                    self.logger.error(f"  ❌ Error processing batch {i//batch_size + 1}: {e}")
+                # Add to property
+                prop['text'] = text
+                prop['embedding'] = embedding.tolist()
+                
+                transformed.append(prop)
+                
+            except Exception as e:
+                self.logger.error(
+                    f"Transform failed for {prop.get('property_id')}: {e}"
+                )
+                continue
         
-        self.logger.info(f"\n✅ Stored {stored_count} properties in Milvus vector database\n")
-        return stored_count
-    
-    def search_properties(self, query, n_results=5, filter_expr=None):
+        self.logger.info(f"✅ Transformed {len(transformed):,} properties")
+        return transformed
+
+    def process_store_to_vdb(self, limit: Optional[int] = None, batch_size: int = 1000) -> Dict[str, Any]:
         """
-        Search for properties using natural language query
+        Run the pipeline.
         
         Args:
-            query: Search query string
-            n_results: Number of results to return
-            filter_expr: Optional filter expression (e.g., 'location == "alexandria"')
-        
+            limit: Max properties to process
+            batch_size: Batch size for Milvus insert
+            
         Returns:
-            Search results
+            Statistics dict
         """
-        self.logger.info(f"🔍 Searching for: '{query}'")
+        self.logger.info("Starting Vector ETL Pipeline...")
         
-        # Generate query embedding
-        query_embedding = self.model.encode(query, convert_to_numpy=True)
+        # Step 1: Extract from RDBMS
+        self.logger.info("Extracting data from DATABASE...")
+        properties = self.rdbms_client.get_validated_properties_for_vectordb(limit=limit)
         
-        # Define search parameters
-        search_params = {
-            "metric_type": "L2",
-            "params": {"nprobe": 10}
-        }
+        if not properties:
+            self.logger.warning("No properties to process")
+            return {'total': 0, 'inserted': 0, 'failed': 0}
         
-        # Search in Milvus
-        results = self.collection.search(
-            data=[query_embedding.tolist()],
-            anns_field="embedding",
-            param=search_params,
-            limit=n_results,
-            expr=filter_expr,
-            output_fields=["property_id", "title", "location", "property_type", 
-                          "listing_type", "price_egp", "bedrooms", "bathrooms", 
-                          "area_sqm", "url", "text"]
+        # Transform (preprocess + embed)
+        self.logger.info(f"Transforming {len(properties):,} properties...")
+        transformed_properties = self.transform_properties(properties)
+        
+        # Load into VECTORDB
+        self.logger.info(f"Loading into VECTORDB...")
+        results = self.vectordb_client.insert_properties(
+            transformed_properties, 
+            batch_size=batch_size
         )
         
+        # Save failed records
+        if results['failed_records']:
+            self.save_failed_records(results['failed_records'])
+        
+        # Summary
+        self.print_summary(results)
+        
         return results
+
+
+    def save_failed_records(self, failed_records: List[Dict]):
+        """Save failed records to JSON file"""
+        log_path = Path(self.logger.handlers[0].baseFilename).parent
+        output_file = log_path / 'validation_failures.json'
+        
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(failed_records, f, indent=2, ensure_ascii=False)
+            
+            self.logger.warning(
+                f"⚠️ Saved {len(failed_records)} failed records to {output_file}"
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to save error log: {e}")
     
-    def print_search_results(self, results):
-        """Print formatted search results"""
-        if not results or len(results[0]) == 0:
-            self.logger.info("❌ No results found\n")
-            return
+    def print_summary(self, results: Dict):
+        """Print pipeline summary"""
+        self.logger.info("📊 PIPELINE SUMMARY")
+        self.logger.info(f"Total properties:     {results['total']:,}")
+        self.logger.info(f"Successfully inserted: {results['inserted']:,}")
+        self.logger.info(f"Failed:               {results['failed']:,}")
         
-        self.logger.info(f"\n{'='*80}")
-        self.logger.info(f"🏠 Found {len(results[0])} Results")
-        self.logger.info("="*80 + "\n")
-        
-        for i, hit in enumerate(results[0], 1):
-            entity = hit.entity
-            self.logger.info(f"{i}. {entity.get('title', 'N/A')[:70]}")
-            self.logger.info(f"   💰 Price: {entity.get('price_egp', 0):,.0f} EGP")
-            self.logger.info(f"   📍 Location: {entity.get('location', 'N/A')}")
-            self.logger.info(f"   🏠 Type: {entity.get('property_type', 'N/A')}")
-            
-            if entity.get('bedrooms'):
-                self.logger.info(f"   🛏️  {entity.get('bedrooms')} beds | 🚿 {entity.get('bathrooms')} baths | 📐 {entity.get('area_sqm')} m²")
-            
-            self.logger.info(f"   🔗 {entity.get('url', 'N/A')[:70]}...")
-            self.logger.info(f"   📊 Distance: {hit.distance:.3f}\n")
+        if results['total'] > 0:
+            success_rate = (results['inserted'] / results['total']) * 100
+            self.logger.info(f"Success rate:         {success_rate:.1f}%")

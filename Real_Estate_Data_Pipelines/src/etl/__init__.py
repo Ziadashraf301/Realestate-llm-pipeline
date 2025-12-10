@@ -1,1 +1,2 @@
 from .marts_builder import PropertyMartBuilder
+from .vectors_builder import PropertyVectorBuilder
