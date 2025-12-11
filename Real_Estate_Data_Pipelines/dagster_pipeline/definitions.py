@@ -1,13 +1,47 @@
+"""Main Dagster definitions for real estate pipeline"""
+from dagster import (
+    Definitions,
+    define_asset_job,
+    ScheduleDefinition
+)
+
+# Import assets
+from .assets.scraping.scraping_assets import (
+    scrape_alexandria_for_sale,
+    scrape_alexandria_for_rent,
+    scrape_cairo_for_sale,
+    scrape_cairo_for_rent
+)
+
+from .assets.mart.mart_assets import (
+    property_mart,
+    location_summary,
+    property_type_summary,
+    time_series_summary,
+    price_analysis_summary,
+    data_quality_report
+)
+
+from .assets.vectors.vector_assets import process_to_milvus
+
+from .assets.summary.summary_assets import scraping_summary, mart_transformation_summary, complete_pipeline_summary
+
+# Import resources
+from .resources.config_resources import (
+    ScraperResource,
+    MartResource,
+    VectorResource
+)
+
+from .config.settings import config
 
 
-# ============================================================================
 # DEFINE JOBS
-# ============================================================================
 
 # Complete pipeline job
 complete_pipeline_job = define_asset_job(
     name="complete_real_estate_pipeline",
-    description="Full pipeline",
+    description="Full pipeline: Scraping → Mart → Vectors",
     selection=[
         # Scraping
         "scrape_alexandria_for_sale",
@@ -46,7 +80,7 @@ scraping_only_job = define_asset_job(
     ]
 )
 
-# Mart transformation only job (for manual runs after scraping)
+# Mart transformation only job
 mart_transformation_only_job = define_asset_job(
     name="mart_transformation_only",
     description="Only transform raw data to mart and update summary tables",
@@ -61,28 +95,25 @@ mart_transformation_only_job = define_asset_job(
     ]
 )
 
-# Vector processing only job (for manual runs)
+# Vector processing only job
 vector_processing_only_job = define_asset_job(
     name="vector_processing_only",
-    description="Only process Mart data to Milvus (no scraping or transformation)",
+    description="Only process Mart data to Milvus",
     selection=["process_to_milvus"]
 )
 
 
-# ============================================================================
 # SCHEDULES
-# ============================================================================
-
 # Main schedule - runs complete pipeline daily at 12 PM
 daily_complete_pipeline_schedule = ScheduleDefinition(
     name="daily_complete_pipeline_at_noon",
     job=complete_pipeline_job,
     cron_schedule="0 12 * * *",  # Every day at 12:00 PM
     execution_timezone="Africa/Cairo",
-    description="Runs complete pipeline daily at 12:00 PM Cairo time: Scraping → Mart → Vectors"
+    description="Runs complete pipeline daily at 12:00 PM Cairo time"
 )
 
-# Mart transformation schedule (runs 2 hours after scraping to ensure data is ready)
+# Mart transformation schedule
 mart_transformation_schedule = ScheduleDefinition(
     name="mart_transformation_at_2pm",
     job=mart_transformation_only_job,
@@ -91,7 +122,7 @@ mart_transformation_schedule = ScheduleDefinition(
     description="Transforms raw data to mart at 2:00 PM Cairo time"
 )
 
-# Vector sync schedule (runs every 6 hours to catch any missed data)
+# Vector sync schedule
 vector_sync_schedule = ScheduleDefinition(
     name="vector_sync_every_6_hours",
     job=vector_processing_only_job,
@@ -101,9 +132,7 @@ vector_sync_schedule = ScheduleDefinition(
 )
 
 
-# ============================================================================
 # DAGSTER DEFINITIONS
-# ============================================================================
 
 defs = Definitions(
     assets=[
@@ -141,29 +170,8 @@ defs = Definitions(
         vector_sync_schedule  
     ],
     resources={
-        "scraper_config": ScraperConfig(
-            project_id=GCP_PROJECT_ID,
-            dataset_id=BQ_DATASET_ID,
-            table_id=BQ_TABLE_ID,
-            log_file=LOG_FILE,
-            max_pages=MAX_PAGES
-        ),
-        "mart_config": MartConfig(
-            project_id=GCP_PROJECT_ID,
-            dataset_id_raw=BQ_DATASET_ID,
-            table_id_raw=BQ_TABLE_ID,
-            dataset_id_mart=BQ_MART_DATASET_ID,
-            table_id_mart=BQ_MART_TABLE_ID,
-            log_file=MART_LOG_FILE
-        ),
-        "vector_config": VectorProcessorConfig(
-            project_id=GCP_PROJECT_ID,
-            dataset_id=BQ_DATASET_ID,  
-            table_id=BQ_TABLE_ID,      
-            milvus_host=MILVUS_HOST,
-            milvus_port=MILVUS_PORT,
-            embedding_model=EMBEDDING_MODEL,
-            batch_size=VECTOR_BATCH_SIZE
-        )
+        "scraper_resource": ScraperResource(),
+        "mart_resource": MartResource(),
+        "vector_resource": VectorResource()
     }
 )

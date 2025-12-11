@@ -15,8 +15,9 @@ class RealEstateConfigModel(BaseModel):
     # Milvus vector DB
     MILVUS_HOST: str
     MILVUS_PORT: str
-    BATCH_SIZE: int = Field(gt=0)
     MILVUS_COLLECTION_NAME: str
+
+    BATCH_SIZE: int = Field(gt=0)
     
     # LLM Models
     EMBEDDING_MODEL: str
