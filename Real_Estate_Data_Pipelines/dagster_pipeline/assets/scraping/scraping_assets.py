@@ -17,10 +17,10 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         context.log.info("🏠 Starting Alexandria for-sale scraping...")
         
         # Import modules
-        from src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
-        from src.databases.big_query.big_query_database import Big_Query_Database
-        from src.helpers.helpers import save_to_json, scraper_report
-        from src.logger.logger_factory import LoggerFactory
+        from src.scrapers import AQARMAPRealEstateScraper
+        from src.databases import Big_Query_Database
+        from src.helpers import save_to_json, scraper_report
+        from src.logger import LoggerFactory
         
         # Initialize logger using LoggerFactory
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
@@ -57,7 +57,7 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
         
         # Save to JSON
-        output_path = config.PROJECT_ROOT / "raw_data" / "alexandria_for_sale.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
         return {
@@ -92,10 +92,10 @@ def scrape_alexandria_for_rent(context: OpExecutionContext, scraper_resource: Sc
     try:
         context.log.info("🏠 Starting Alexandria for-rent scraping...")
         
-        from src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
-        from src.databases.big_query.big_query_database import Big_Query_Database
-        from src.helpers.helpers import save_to_json, scraper_report
-        from src.logger.logger_factory import LoggerFactory
+        from src.scrapers import AQARMAPRealEstateScraper
+        from src.databases import Big_Query_Database
+        from src.helpers import save_to_json, scraper_report
+        from src.logger import LoggerFactory
         
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
         
@@ -124,7 +124,7 @@ def scrape_alexandria_for_rent(context: OpExecutionContext, scraper_resource: Sc
         inserted_count = db.save_to_database(results)
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
         
-        output_path = config.PROJECT_ROOT / "raw_data" / "alexandria_for_rent.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_rent.json"
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
         return {
@@ -159,10 +159,10 @@ def scrape_cairo_for_sale(context: OpExecutionContext, scraper_resource: Scraper
     try:
         context.log.info("🏠 Starting Cairo for-sale scraping...")
         
-        from src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
-        from src.databases.big_query.big_query_database import Big_Query_Database
-        from src.helpers.helpers import save_to_json, scraper_report
-        from src.logger.logger_factory import LoggerFactory
+        from src.scrapers import AQARMAPRealEstateScraper
+        from src.databases import Big_Query_Database
+        from src.helpers import save_to_json, scraper_report
+        from src.logger import LoggerFactory
         
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
         
@@ -191,7 +191,7 @@ def scrape_cairo_for_sale(context: OpExecutionContext, scraper_resource: Scraper
         inserted_count = db.save_to_database(results)
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
         
-        output_path = config.PROJECT_ROOT / "raw_data" / "cairo_for_sale.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "cairo_for_sale.json"
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
         return {
@@ -226,10 +226,10 @@ def scrape_cairo_for_rent(context: OpExecutionContext, scraper_resource: Scraper
     try:
         context.log.info("🏠 Starting Cairo for-rent scraping...")
         
-        from src.scrapers.aqarmap.aqarmap_real_estate_scraper import AQARMAPRealEstateScraper
-        from src.databases.big_query.big_query_database import Big_Query_Database
-        from src.helpers.helpers import save_to_json, scraper_report
-        from src.logger.logger_factory import LoggerFactory
+        from src.scrapers import AQARMAPRealEstateScraper
+        from src.databases import Big_Query_Database
+        from src.helpers import save_to_json, scraper_report
+        from src.logger import LoggerFactory
         
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
         
@@ -258,7 +258,7 @@ def scrape_cairo_for_rent(context: OpExecutionContext, scraper_resource: Scraper
         inserted_count = db.save_to_database(results)
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
         
-        output_path = config.PROJECT_ROOT / "raw_data" / "cairo_for_rent.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "cairo_for_rent.json"
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
         return {

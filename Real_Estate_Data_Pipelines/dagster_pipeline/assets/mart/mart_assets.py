@@ -22,8 +22,8 @@ def property_mart(context: OpExecutionContext, mart_resource: MartResource):
     try:
         context.log.info("🔄 Starting mart table transformation...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         # Initialize database
         db = Big_Query_Database(
@@ -76,8 +76,8 @@ def location_summary(context: OpExecutionContext, mart_resource: MartResource):
     try:
         context.log.info("🗺️ Creating location summary snapshot...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         db = Big_Query_Database(
             project_id=mart_resource.project_id,
@@ -125,8 +125,8 @@ def property_type_summary(context: OpExecutionContext, mart_resource: MartResour
     try:
         context.log.info("🏠 Creating property type summary snapshot...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         db = Big_Query_Database(
             project_id=mart_resource.project_id,
@@ -174,8 +174,8 @@ def time_series_summary(context: OpExecutionContext, mart_resource: MartResource
     try:
         context.log.info("📅 Creating time series summary snapshot...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         db = Big_Query_Database(
             project_id=mart_resource.project_id,
@@ -223,8 +223,8 @@ def price_analysis_summary(context: OpExecutionContext, mart_resource: MartResou
     try:
         context.log.info("💰 Creating price analysis summary snapshot...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         db = Big_Query_Database(
             project_id=mart_resource.project_id,
@@ -272,8 +272,8 @@ def data_quality_report(context: OpExecutionContext, mart_resource: MartResource
     try:
         context.log.info("🔍 Creating data quality report snapshot...")
         
-        from src.etl.marts_builder.real_estate_mart import PropertyMartBuilder
-        from src.databases.big_query.big_query_database import Big_Query_Database
+        from src.etl import PropertyMartBuilder
+        from src.databases import Big_Query_Database
         
         db = Big_Query_Database(
             project_id=mart_resource.project_id,

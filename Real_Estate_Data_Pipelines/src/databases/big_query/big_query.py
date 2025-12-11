@@ -13,8 +13,8 @@ class Big_Query_Database():
     def __init__(self,
                 log_dir,
                 project_id, 
-                raw_dataset_id, 
-                raw_table_id,
+                raw_dataset_id=None, 
+                raw_table_id=None,
                 mart_dataset_id=None,
                 mart_table_id=None):
         

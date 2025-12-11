@@ -2,7 +2,8 @@
 from dagster import (
     Definitions,
     define_asset_job,
-    ScheduleDefinition
+    ScheduleDefinition,
+    AssetSelection
 )
 
 # Import assets
@@ -35,6 +36,9 @@ from .resources.config_resources import (
 
 from .config.settings import config
 
+# Initialize logger
+from .logger.logger import capture_dagster_logs
+capture_dagster_logs(log_dir=config.LOG_DIR)
 
 # DEFINE JOBS
 
@@ -42,7 +46,7 @@ from .config.settings import config
 complete_pipeline_job = define_asset_job(
     name="complete_real_estate_pipeline",
     description="Full pipeline: Scraping → Mart → Vectors",
-    selection=[
+    selection=AssetSelection.keys(
         # Scraping
         "scrape_alexandria_for_sale",
         "scrape_alexandria_for_rent",
@@ -64,27 +68,27 @@ complete_pipeline_job = define_asset_job(
 
         # Final summary
         "complete_pipeline_summary"
-    ]
-)
+    
+))
 
 # Scraping only job
 scraping_only_job = define_asset_job(
     name="scraping_only",
     description="Only scraping job without transformation or vector processing",
-    selection=[
+    selection=AssetSelection.keys(
         "scrape_alexandria_for_sale",
         "scrape_alexandria_for_rent",
         "scrape_cairo_for_sale",
         "scrape_cairo_for_rent",
         "scraping_summary"
-    ]
+    )
 )
 
 # Mart transformation only job
 mart_transformation_only_job = define_asset_job(
     name="mart_transformation_only",
     description="Only transform raw data to mart and update summary tables",
-    selection=[
+    selection=AssetSelection.keys(
         "property_mart",
         "location_summary",
         "property_type_summary",
@@ -92,14 +96,14 @@ mart_transformation_only_job = define_asset_job(
         "price_analysis_summary",
         "data_quality_report",
         "mart_transformation_summary"
-    ]
+    )
 )
 
 # Vector processing only job
 vector_processing_only_job = define_asset_job(
     name="vector_processing_only",
     description="Only process Mart data to Milvus",
-    selection=["process_to_milvus"]
+    selection=AssetSelection.keys("process_to_milvus")
 )
 
 

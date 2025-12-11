@@ -3,6 +3,6 @@ __pycache__
 configs
 logs
 raw_data
-.tmp_dagster_home_ybpl2d53
+.tmp_*
 volumes
 python.py

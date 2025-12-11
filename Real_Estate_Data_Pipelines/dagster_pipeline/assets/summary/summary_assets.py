@@ -52,7 +52,7 @@ def scraping_summary(
     context.log.info(f"💾 Total properties inserted to BigQuery: {total_inserted}")
     
     try:
-        output_path = config.PROJECT_ROOT / "raw_data" / "scraping_summary.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping_summary.json"
         with open(output_path, 'w') as f:
             json.dump(summary, f, indent=2)
         context.log.info(f"✅ Summary saved to {output_path}")
@@ -117,7 +117,7 @@ def mart_transformation_summary(
     context.log.info(f"❌ Failed summary tables: {failed}/5")
     
     try:
-        output_path = config.PROJECT_ROOT / "raw_data" / "mart_summary.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "mart_summary.json"
         with open(output_path, 'w') as f:
             json.dump(summary, f, indent=2)
         context.log.info(f"✅ Mart summary saved to {output_path}")
@@ -180,7 +180,7 @@ def complete_pipeline_summary(
     
     # Save complete summary
     try:
-        output_path = config.PROJECT_ROOT / "raw_data" / "complete_pipeline_summary.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "complete_pipeline_summary.json"
         with open(output_path, 'w') as f:
             json.dump(summary, f, indent=2)
         context.log.info(f"✅ Complete pipeline summary saved to {output_path}")
