@@ -1,24 +1,21 @@
-import os
 import warnings
 from pathlib import Path
 from src.scrapers import AQARMAPRealEstateScraper
-from src.config import Config
+from src.config import config
 from src.databases import Big_Query_Database
 from src.logger import LoggerFactory
 from src.helpers import save_to_json, scraper_report
 
 
 def test_scrapers_operations():
-    """Execute the enhanced scraping pipeline with structured logging"""
+    """Execute the scraping pipeline with logging"""
 
     # Path Configuration
     PROJECT_ROOT = Path(__file__).resolve().parents[3]
-    CONFIG_DIR = PROJECT_ROOT / "Configs"
-    CONFIG_PATH = CONFIG_DIR / "Real_Estate_Data_Pipelines.json"
-    GOOGLE_APPLICATION_CREDENTIALS = CONFIG_DIR / "big_query_service_account.json"
+    OUTPUT_JSON = PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
 
     # Load Config
-    cfg = Config(CONFIG_PATH)
+    cfg = config
 
     # Initialize Logger
     logger = LoggerFactory.create_logger(log_dir=cfg.LOG_DIR)
@@ -33,10 +30,7 @@ def test_scrapers_operations():
 
     warnings.filterwarnings("ignore")
 
-    # Set Environment Variables
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(GOOGLE_APPLICATION_CREDENTIALS)
-
-    logger.info(f"✅ Loaded configuration from {CONFIG_PATH}")
+    logger.info(f"✅ Loaded configuration")
 
     # Initialize BigQuery Database Client
     database = Big_Query_Database(
@@ -59,7 +53,6 @@ def test_scrapers_operations():
     LISTING_TYPE = "for-sale"
     MAX_PAGES = cfg.MAX_PAGES
 
-    OUTPUT_JSON = PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
 
     logger.info("⚙️  Scraper Configuration:")
     logger.info(f"  • City: {CITY}")

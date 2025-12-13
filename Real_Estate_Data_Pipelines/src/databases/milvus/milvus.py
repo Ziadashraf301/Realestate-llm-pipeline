@@ -172,7 +172,7 @@ class Milvus_VectorDatabase():
             # Insert validated batch
             if batch_validated:
                 try:
-                    result = self.client.insert(
+                    result = self.client.upsert(
                         collection_name=self.collection_name,
                         data=batch_validated
                     )

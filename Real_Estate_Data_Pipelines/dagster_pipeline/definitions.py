@@ -8,19 +8,13 @@ from dagster import (
 
 # Import assets
 from .assets.scraping.scraping_assets import (
-    scrape_alexandria_for_sale,
-    scrape_alexandria_for_rent,
-    scrape_cairo_for_sale,
-    scrape_cairo_for_rent
+    scraping_assets,
+    get_scraping_asset_names
 )
 
 from .assets.mart.mart_assets import (
-    property_mart,
-    location_summary,
-    property_type_summary,
-    time_series_summary,
-    price_analysis_summary,
-    data_quality_report
+    mart_assets,
+    get_mart_asset_names
 )
 
 from .assets.vectors.vector_assets import process_to_milvus
@@ -34,13 +28,12 @@ from .resources.config_resources import (
     VectorResource
 )
 
-from .config.settings import config
-
-# Initialize logger
-from .logger.logger import capture_dagster_logs
-capture_dagster_logs(log_dir=config.LOG_DIR)
 
 # DEFINE JOBS
+
+# Get all scraping asset names dynamically
+scraping_asset_names = get_scraping_asset_names()
+mart_asset_names = get_mart_asset_names()
 
 # Complete pipeline job
 complete_pipeline_job = define_asset_job(
@@ -48,20 +41,11 @@ complete_pipeline_job = define_asset_job(
     description="Full pipeline: Scraping → Mart → Vectors",
     selection=AssetSelection.keys(
         # Scraping
-        "scrape_alexandria_for_sale",
-        "scrape_alexandria_for_rent",
-        "scrape_cairo_for_sale",
-        "scrape_cairo_for_rent",
+        *scraping_asset_names,
         "scraping_summary",
 
         # Mart transformation
-        "property_mart",
-        "location_summary",
-        "property_type_summary",
-        "time_series_summary",
-        "price_analysis_summary",
-        "data_quality_report",
-        "mart_transformation_summary",
+        *mart_asset_names,
 
         # Vector processing
         "process_to_milvus",
@@ -76,10 +60,7 @@ scraping_only_job = define_asset_job(
     name="scraping_only",
     description="Only scraping job without transformation or vector processing",
     selection=AssetSelection.keys(
-        "scrape_alexandria_for_sale",
-        "scrape_alexandria_for_rent",
-        "scrape_cairo_for_sale",
-        "scrape_cairo_for_rent",
+        *scraping_asset_names,
         "scraping_summary"
     )
 )
@@ -89,12 +70,7 @@ mart_transformation_only_job = define_asset_job(
     name="mart_transformation_only",
     description="Only transform raw data to mart and update summary tables",
     selection=AssetSelection.keys(
-        "property_mart",
-        "location_summary",
-        "property_type_summary",
-        "time_series_summary",
-        "price_analysis_summary",
-        "data_quality_report",
+        *mart_asset_names,
         "mart_transformation_summary"
     )
 )
@@ -141,19 +117,11 @@ vector_sync_schedule = ScheduleDefinition(
 defs = Definitions(
     assets=[
         # Scraping assets
-        scrape_alexandria_for_sale,
-        scrape_alexandria_for_rent,
-        scrape_cairo_for_sale,
-        scrape_cairo_for_rent,
+        *scraping_assets,
         scraping_summary,
 
         # Mart transformation assets
-        property_mart,
-        location_summary,
-        property_type_summary,
-        time_series_summary,
-        price_analysis_summary,
-        data_quality_report,
+        *mart_assets,
         mart_transformation_summary,
 
         # Vector processing assets

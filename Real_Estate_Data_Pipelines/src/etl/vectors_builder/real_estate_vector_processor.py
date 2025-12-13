@@ -101,6 +101,8 @@ class PropertyVectorBuilder:
             Statistics dict
         """
         self.logger.info("Starting Vector ETL Pipeline...")
+
+        # Extract the ids properties
         
         # Step 1: Extract from RDBMS
         self.logger.info("Extracting data from DATABASE...")

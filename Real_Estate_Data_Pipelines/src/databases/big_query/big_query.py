@@ -1,6 +1,5 @@
 import os
 from google.cloud import bigquery
-from google.cloud.exceptions import NotFound
 import tempfile
 import json as json_lib
 from datetime import datetime
@@ -190,6 +189,7 @@ class Big_Query_Database():
             self.logger.info(f"⚠️  Could not load existing URLs (table may not exist yet): {e}")
             return set()
 
+
     
     def get_validated_properties_for_vectordb(self, limit=None):
         """
@@ -258,7 +258,7 @@ class Big_Query_Database():
 
     def create_mart_table(self):
         """Creates partitioned mart table with comprehensive data cleaning and enrichment."""
-        self.logger.info("🚀 Starting optimized mart table creation...")
+        self.logger.info("🚀 Starting mart table creation...")
         self.create_dataset_if_not_exists(project_id = self.project_id, dataset_id = self.mart_dataset_id)
 
         query = f"""

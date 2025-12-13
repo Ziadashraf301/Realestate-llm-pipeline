@@ -1,4 +1,4 @@
-"""Configuration management for Dagster pipeline"""
+"""Configuration management for the pipeline"""
 import os
 import json
 from pathlib import Path

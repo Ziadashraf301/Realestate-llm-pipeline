@@ -1,20 +1,24 @@
-"""Scraping assets for real estate pipeline - using existing helpers"""
+"""Scraping assets - Fully dynamic generation"""
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
-from ...config.settings import config
+from src.config import config
 from ...resources.config_resources import ScraperResource
+from .scraping_config import SCRAPING_CONFIG
 
 
-@asset(
-    description="Scrape Alexandria properties for sale",
-    group_name="real_estate_scraping",
-    retry_policy=RetryPolicy(max_retries=2, delay=300)
-)
-def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: ScraperResource):
-    """Scrape Alexandria properties for sale using existing helpers"""
+def scrape_city_listing(
+    context: OpExecutionContext,
+    scraper_resource: ScraperResource,
+    city: str,
+    listing_type: str
+) -> Dict[str, Any]:
+    """
+    Generic scraping function for any city and listing type
+    """
     try:
-        context.log.info("🏠 Starting Alexandria for-sale scraping...")
+        context.log.info(f"🏠 Starting {city.title()} {listing_type} scraping...")
         
         # Import modules
         from src.scrapers import AQARMAPRealEstateScraper
@@ -22,7 +26,7 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         from src.helpers import save_to_json, scraper_report
         from src.logger import LoggerFactory
         
-        # Initialize logger using LoggerFactory
+        # Initialize logger
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
         
         # Initialize database
@@ -42,27 +46,27 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         
         # Scrape data
         results = scraper.scrape_aqarmap(
-            city='alexandria',
-            listing_type='for-sale',
+            city=city,
+            listing_type=listing_type,
             max_pages=scraper_resource.max_pages
         )
         
         # Generate report
         scraper_report(results=results, logger=logger)
-        
-        context.log.info(f"✅ Scraped {len(results)} properties from Alexandria (for-sale)")
+        context.log.info(f"✅ Scraped {len(results)} properties from {city.title()} ({listing_type})")
         
         # Save to BigQuery
         inserted_count = db.save_to_database(results)
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
         
         # Save to JSON
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
+        filename = f"{city}_{listing_type.replace('-', '_')}.json"
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / filename
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
         return {
-            "city": "alexandria",
-            "listing_type": "for-sale",
+            "city": city,
+            "listing_type": listing_type,
             "scraped_count": len(results),
             "inserted_count": inserted_count,
             "timestamp": datetime.now().isoformat(),
@@ -70,10 +74,10 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         }
         
     except Exception as e:
-        context.log.error(f"❌ Error scraping Alexandria for-sale: {str(e)}")
+        context.log.error(f"❌ Error scraping {city.title()} {listing_type}: {str(e)}")
         return {
-            "city": "alexandria",
-            "listing_type": "for-sale",
+            "city": city,
+            "listing_type": listing_type,
             "scraped_count": 0,
             "inserted_count": 0,
             "timestamp": datetime.now().isoformat(),
@@ -82,202 +86,66 @@ def scrape_alexandria_for_sale(context: OpExecutionContext, scraper_resource: Sc
         }
 
 
-@asset(
-    description="Scrape Alexandria properties for rent",
-    group_name="real_estate_scraping",
-    retry_policy=RetryPolicy(max_retries=2, delay=300)
-)
-def scrape_alexandria_for_rent(context: OpExecutionContext, scraper_resource: ScraperResource):
-    """Scrape Alexandria properties for rent using existing helpers"""
-    try:
-        context.log.info("🏠 Starting Alexandria for-rent scraping...")
-        
-        from src.scrapers import AQARMAPRealEstateScraper
-        from src.databases import Big_Query_Database
-        from src.helpers import save_to_json, scraper_report
-        from src.logger import LoggerFactory
-        
-        logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
-        
-        db = Big_Query_Database(
-            project_id=scraper_resource.project_id,
-            raw_dataset_id=scraper_resource.raw_dataset_id,
-            raw_table_id=scraper_resource.raw_table_id,
-            log_dir=scraper_resource.log_dir
-        )
-        db.connect()
-        
-        scraper = AQARMAPRealEstateScraper(
-            log_dir=scraper_resource.log_dir,
-            db=db
-        )
-        
-        results = scraper.scrape_aqarmap(
-            city='alexandria',
-            listing_type='for-rent',
-            max_pages=scraper_resource.max_pages
-        )
-        
-        scraper_report(results=results, logger=logger)
-        context.log.info(f"✅ Scraped {len(results)} properties from Alexandria (for-rent)")
-        
-        inserted_count = db.save_to_database(results)
-        context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
-        
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_rent.json"
-        save_to_json(filename=str(output_path), results=results, logger=logger)
-        
-        return {
-            "city": "alexandria",
-            "listing_type": "for-rent",
-            "scraped_count": len(results),
-            "inserted_count": inserted_count,
-            "timestamp": datetime.now().isoformat(),
-            "status": "success"
-        }
-        
-    except Exception as e:
-        context.log.error(f"❌ Error scraping Alexandria for-rent: {str(e)}")
-        return {
-            "city": "alexandria",
-            "listing_type": "for-rent",
-            "scraped_count": 0,
-            "inserted_count": 0,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+def create_scraping_asset(city: str, listing_type: str):
+    """
+    Factory function to dynamically create scraping assets
+    
+    Args:
+        city: City name
+        listing_type: Listing type
+    
+    Returns:
+        Dagster asset function
+    """
+    asset_name = f"scrape_{city}_{listing_type.replace('-', '_')}"
+    
+    @asset(
+        name=asset_name,
+        description=f"Scrape {city.title()} properties {listing_type}",
+        group_name="real_estate_scraping",
+        retry_policy=RetryPolicy(max_retries=2, delay=300)
+    )
+    def scraping_asset(context: OpExecutionContext, scraper_resource: ScraperResource):
+        return scrape_city_listing(context, scraper_resource, city, listing_type)
+    
+    return scraping_asset
 
 
-@asset(
-    description="Scrape Cairo properties for sale",
-    group_name="real_estate_scraping",
-    retry_policy=RetryPolicy(max_retries=2, delay=300)
-)
-def scrape_cairo_for_sale(context: OpExecutionContext, scraper_resource: ScraperResource):
-    """Scrape Cairo properties for sale using existing helpers"""
-    try:
-        context.log.info("🏠 Starting Cairo for-sale scraping...")
-        
-        from src.scrapers import AQARMAPRealEstateScraper
-        from src.databases import Big_Query_Database
-        from src.helpers import save_to_json, scraper_report
-        from src.logger import LoggerFactory
-        
-        logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
-        
-        db = Big_Query_Database(
-            project_id=scraper_resource.project_id,
-            raw_dataset_id=scraper_resource.raw_dataset_id,
-            raw_table_id=scraper_resource.raw_table_id,
-            log_dir=scraper_resource.log_dir
-        )
-        db.connect()
-        
-        scraper = AQARMAPRealEstateScraper(
-            log_dir=scraper_resource.log_dir,
-            db=db
-        )
-        
-        results = scraper.scrape_aqarmap(
-            city='cairo',
-            listing_type='for-sale',
-            max_pages=scraper_resource.max_pages
-        )
-        
-        scraper_report(results=results, logger=logger)
-        context.log.info(f"✅ Scraped {len(results)} properties from Cairo (for-sale)")
-        
-        inserted_count = db.save_to_database(results)
-        context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
-        
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "cairo_for_sale.json"
-        save_to_json(filename=str(output_path), results=results, logger=logger)
-        
-        return {
-            "city": "cairo",
-            "listing_type": "for-sale",
-            "scraped_count": len(results),
-            "inserted_count": inserted_count,
-            "timestamp": datetime.now().isoformat(),
-            "status": "success"
-        }
-        
-    except Exception as e:
-        context.log.error(f"❌ Error scraping Cairo for-sale: {str(e)}")
-        return {
-            "city": "cairo",
-            "listing_type": "for-sale",
-            "scraped_count": 0,
-            "inserted_count": 0,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+def get_all_scraping_assets() -> List:
+    """
+    Dynamically generate all scraping assets from config
+    
+    Returns:
+        List of all scraping asset functions
+    """
+    assets = []
+    for scraping_config in SCRAPING_CONFIG:
+        city = scraping_config["city"]
+        listing_type = scraping_config["listing_type"]
+        asset_func = create_scraping_asset(city, listing_type)
+        assets.append(asset_func)
+    
+    return assets
 
 
-@asset(
-    description="Scrape Cairo properties for rent",
-    group_name="real_estate_scraping",
-    retry_policy=RetryPolicy(max_retries=2, delay=300)
-)
-def scrape_cairo_for_rent(context: OpExecutionContext, scraper_resource: ScraperResource):
-    """Scrape Cairo properties for rent using existing helpers"""
-    try:
-        context.log.info("🏠 Starting Cairo for-rent scraping...")
-        
-        from src.scrapers import AQARMAPRealEstateScraper
-        from src.databases import Big_Query_Database
-        from src.helpers import save_to_json, scraper_report
-        from src.logger import LoggerFactory
-        
-        logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
-        
-        db = Big_Query_Database(
-            project_id=scraper_resource.project_id,
-            raw_dataset_id=scraper_resource.raw_dataset_id,
-            raw_table_id=scraper_resource.raw_table_id,
-            log_dir=scraper_resource.log_dir
-        )
-        db.connect()
-        
-        scraper = AQARMAPRealEstateScraper(
-            log_dir=scraper_resource.log_dir,
-            db=db
-        )
-        
-        results = scraper.scrape_aqarmap(
-            city='cairo',
-            listing_type='for-rent',
-            max_pages=scraper_resource.max_pages
-        )
-        
-        scraper_report(results=results, logger=logger)
-        context.log.info(f"✅ Scraped {len(results)} properties from Cairo (for-rent)")
-        
-        inserted_count = db.save_to_database(results)
-        context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
-        
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "cairo_for_rent.json"
-        save_to_json(filename=str(output_path), results=results, logger=logger)
-        
-        return {
-            "city": "cairo",
-            "listing_type": "for-rent",
-            "scraped_count": len(results),
-            "inserted_count": inserted_count,
-            "timestamp": datetime.now().isoformat(),
-            "status": "success"
-        }
-        
-    except Exception as e:
-        context.log.error(f"❌ Error scraping Cairo for-rent: {str(e)}")
-        return {
-            "city": "cairo",
-            "listing_type": "for-rent",
-            "scraped_count": 0,
-            "inserted_count": 0,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+def get_scraping_asset_names() -> List[str]:
+    """
+    Get list of all scraping asset names for use in job definitions
+    
+    Returns:
+        List of asset names as strings
+    """
+    return [
+        f"scrape_{cfg['city']}_{cfg['listing_type'].replace('-', '_')}"
+        for cfg in SCRAPING_CONFIG
+    ]
+
+# Generate all assets dynamically
+scraping_assets = get_all_scraping_assets()
+
+# This allows to import them individually if needed
+_asset_map = {asset.key.path[-1]: asset for asset in scraping_assets}
+
+# Create module-level variables dynamically
+for asset_name, asset_func in _asset_map.items():
+    globals()[asset_name] = asset_func

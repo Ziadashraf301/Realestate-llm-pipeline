@@ -1,55 +1,67 @@
 """Summary assets for real estate pipeline"""
 import json
 from datetime import datetime
-from dagster import asset, OpExecutionContext
-from ...config.settings import config
+from dagster import asset, AssetExecutionContext, RetryPolicy
 
+from src.config import config
+
+# Import all scraping assets dynamically
+from ..scraping.scraping_assets import scraping_assets
+
+# Import all mart assets dynamically
+from ..mart.mart_assets import mart_assets
+
+# Generate dynamic dependencies for scraping_summary
+scraping_deps = [str(asset_def.key.path[-1]) for asset_def in scraping_assets]
 
 @asset(
-    description="Summary of all scraping operations",
+    description="Summary of all scraping operations - Auto-discovers all scraping assets",
     group_name="real_estate_scraping",
-    deps=[
-        "scrape_alexandria_for_sale",
-        "scrape_alexandria_for_rent",
-        "scrape_cairo_for_sale",
-        "scrape_cairo_for_rent"
-    ]
+    deps=scraping_deps,
+    retry_policy=RetryPolicy(max_retries=2, delay=300)
+
 )
-def scraping_summary(
-    context: OpExecutionContext,
-    scrape_alexandria_for_sale,
-    scrape_alexandria_for_rent,
-    scrape_cairo_for_sale,
-    scrape_cairo_for_rent
-):
-    """Generate summary of all scraping operations"""
+def scraping_summary(context: AssetExecutionContext, **upstream_assets):
+    """
+    Generate summary of all scraping operations.
+    Automatically discovers and summarizes ALL scraping assets.
+    """
     
-    all_results = [
-        scrape_alexandria_for_sale,
-        scrape_alexandria_for_rent,
-        scrape_cairo_for_sale,
-        scrape_cairo_for_rent
-    ]
+    # Filter to get only scraping results (dicts with expected keys)
+    all_results = []
+    scraping_asset_names = []
     
+    for asset_name, asset_value in upstream_assets.items():
+        # Check if it's a scraping asset result
+        if isinstance(asset_value, dict) and ('scraped_count' in asset_value or 'inserted_count' in asset_value):
+            all_results.append(asset_value)
+            scraping_asset_names.append(asset_name)
+    
+    # Calculate summary statistics
     total_scraped = sum(r.get('scraped_count', 0) for r in all_results)
     total_inserted = sum(r.get('inserted_count', 0) for r in all_results)
     successful = sum(1 for r in all_results if r.get('status') == 'success')
     failed = sum(1 for r in all_results if r.get('status') == 'failed')
+    total_operations = len(all_results)
     
     summary = {
         "timestamp": datetime.now().isoformat(),
+        "total_operations": total_operations,
         "total_properties_scraped": total_scraped,
         "total_properties_inserted": total_inserted,
         "successful_operations": successful,
         "failed_operations": failed,
+        "operations": scraping_asset_names,
         "details": all_results
     }
     
+    # Log summary
     context.log.info("📊 SCRAPING SUMMARY")
-    context.log.info(f"✅ Successful operations: {successful}/4")
-    context.log.info(f"❌ Failed operations: {failed}/4")
+    context.log.info(f"✅ Successful operations: {successful}/{total_operations}")
+    context.log.info(f"❌ Failed operations: {failed}/{total_operations}")
     context.log.info(f"📈 Total properties scraped: {total_scraped}")
     context.log.info(f"💾 Total properties inserted to BigQuery: {total_inserted}")
+    context.log.info(f"📋 Operations: {', '.join(scraping_asset_names)}")
     
     try:
         output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping_summary.json"
@@ -62,59 +74,56 @@ def scraping_summary(
     return summary
 
 
+# Generate dynamic dependencies for mart_transformation_summary
+mart_deps = [str(asset_def.key.path[-1]) for asset_def in mart_assets]
+
+
 @asset(
-    description="Summary of all mart transformations",
-    group_name="mart_summaries",
-    deps=[
-        "location_summary",
-        "property_type_summary",
-        "time_series_summary",
-        "price_analysis_summary",
-        "data_quality_report"
-    ]
+    description="Summary of mart transformation operations - Auto-discovers all mart assets",
+    group_name="real_estate_mart",
+    deps=mart_deps,
+    retry_policy=RetryPolicy(max_retries=2, delay=300)
+
 )
-def mart_transformation_summary(
-    context: OpExecutionContext,
-    property_mart,
-    location_summary,
-    property_type_summary,
-    time_series_summary,
-    price_analysis_summary,
-    data_quality_report
-):
-    """Generate summary of all mart transformation operations"""
+def mart_transformation_summary(context: AssetExecutionContext, **upstream_assets):
+    """
+    Generate summary of all mart transformation operations.
+    Automatically discovers and summarizes ALL mart assets.
+    """
     
-    all_results = [
-        location_summary,
-        property_type_summary,
-        time_series_summary,
-        price_analysis_summary,
-        data_quality_report
-    ]
+    # Filter to get only mart results
+    all_results = []
+    mart_asset_names = []
     
+    for asset_name, asset_value in upstream_assets.items():
+        # Check if it's a mart asset result (exclude scraping_summary)
+        if isinstance(asset_value, dict) and asset_name != 'scraping_summary':
+            if 'row_count' in asset_value or 'table_name' in asset_value:
+                all_results.append(asset_value)
+                mart_asset_names.append(asset_name)
+    
+    # Calculate statistics
+    total_rows_processed = sum(r.get('row_count', 0) for r in all_results)
     successful = sum(1 for r in all_results if r.get('status') == 'success')
     failed = sum(1 for r in all_results if r.get('status') == 'failed')
+    total_operations = len(all_results)
     
     summary = {
         "timestamp": datetime.now().isoformat(),
-        "mart_total_rows": property_mart.get('total_rows', 0),
-        "mart_status": property_mart.get('status', 'unknown'),
-        "summary_tables_successful": successful,
-        "summary_tables_failed": failed,
-        "details": {
-            "mart": property_mart,
-            "location_summary": location_summary,
-            "property_type_summary": property_type_summary,
-            "time_series_summary": time_series_summary,
-            "price_analysis_summary": price_analysis_summary,
-            "data_quality_report": data_quality_report
-        }
+        "total_operations": total_operations,
+        "total_rows_processed": total_rows_processed,
+        "successful_operations": successful,
+        "failed_operations": failed,
+        "operations": mart_asset_names,
+        "details": all_results
     }
     
-    context.log.info("📊 MART TRANSFORMATION SUMMARY")
-    context.log.info(f"✅ Mart table: {property_mart.get('total_rows', 0):,} total rows")
-    context.log.info(f"✅ Successful summary tables: {successful}/5")
-    context.log.info(f"❌ Failed summary tables: {failed}/5")
+    # Log summary
+    context.log.info("🔄 MART TRANSFORMATION SUMMARY")
+    context.log.info(f"✅ Successful transformations: {successful}/{total_operations}")
+    context.log.info(f"❌ Failed transformations: {failed}/{total_operations}")
+    context.log.info(f"📊 Total rows processed: {total_rows_processed}")
+    context.log.info(f"📋 Tables: {', '.join(mart_asset_names)}")
     
     try:
         output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "mart_summary.json"
@@ -128,56 +137,67 @@ def mart_transformation_summary(
 
 
 @asset(
-    description="Final summary of complete pipeline",
-    group_name="pipeline_summary",
-    deps=["scraping_summary", "mart_transformation_summary", "process_to_milvus"]
+    description="Complete pipeline summary",
+    group_name="real_estate_pipeline",
+    deps=["scraping_summary", "mart_transformation_summary", "process_to_milvus"],
+    retry_policy=RetryPolicy(max_retries=2, delay=300)
 )
 def complete_pipeline_summary(
-    context: OpExecutionContext,
-    scraping_summary,
-    mart_transformation_summary,
-    process_to_milvus
+    context: AssetExecutionContext,
+    scraping_summary: dict,
+    mart_transformation_summary: dict,
+    process_to_milvus: dict
 ):
-    """Generate final summary of the entire pipeline"""
+    """
+    Generate complete pipeline summary including all stages.
+    """
     
+    # Aggregate data from all stages
     summary = {
         "timestamp": datetime.now().isoformat(),
-        "scraping": {
-            "total_scraped": scraping_summary.get('total_properties_scraped', 0),
-            "total_inserted_raw": scraping_summary.get('total_properties_inserted', 0),
-            "successful_ops": scraping_summary.get('successful_operations', 0),
-            "failed_ops": scraping_summary.get('failed_operations', 0)
-        },
-        "mart_transformation": {
-            "total_rows_mart": mart_transformation_summary.get('mart_total_rows', 0),
-            "summary_tables_successful": mart_transformation_summary.get('summary_tables_successful', 0),
-            "summary_tables_failed": mart_transformation_summary.get('summary_tables_failed', 0),
-            "status": mart_transformation_summary.get('mart_status', 'unknown')
-        },
-        "vector_processing": {
-            "new_processed": process_to_milvus.get('new_inserted', 0),
-            "total_in_milvus": process_to_milvus.get('total_in_milvus', 0),
-            "status": process_to_milvus.get('status', 'unknown')
-        },
-        "pipeline_status": "success" if (
-            scraping_summary.get('failed_operations', 0) == 0 and 
-            mart_transformation_summary.get('mart_status') == 'success' and
-            process_to_milvus.get('status') == 'success'
-        ) else "partial_failure"
+        "pipeline_status": "success",
+        "stages": {
+            "scraping": {
+                "total_scraped": scraping_summary.get('total_properties_scraped', 0),
+                "total_inserted": scraping_summary.get('total_properties_inserted', 0),
+                "successful_ops": scraping_summary.get('successful_operations', 0),
+                "failed_ops": scraping_summary.get('failed_operations', 0)
+            },
+            "mart_transformation": {
+                "total_rows": mart_transformation_summary.get('total_rows_processed', 0),
+                "successful_ops": mart_transformation_summary.get('successful_operations', 0),
+                "failed_ops": mart_transformation_summary.get('failed_operations', 0)
+            },
+            "vector_processing": {
+                "processed_count": process_to_milvus.get('processed_count', 0),
+                "total_in_milvus": process_to_milvus.get('total_count', 0),
+                "status": process_to_milvus.get('status', 'unknown')
+            }
+        }
     }
     
-    context.log.info("🎉 COMPLETE PIPELINE SUMMARY")
-    context.log.info(f"📥 Scraping:")
-    context.log.info(f"   - Total scraped: {summary['scraping']['total_scraped']}")
-    context.log.info(f"   - Inserted to Raw BigQuery: {summary['scraping']['total_inserted_raw']}")
-    context.log.info(f"🔄 Mart Transformation:")
-    context.log.info(f"   - Total rows in Mart: {summary['mart_transformation']['total_rows_mart']:,}")
-    context.log.info(f"   - Summary tables updated: {summary['mart_transformation']['summary_tables_successful']}/5")
-    context.log.info(f"🤖 Vector Processing:")
-    context.log.info(f"   - New processed to Milvus: {summary['vector_processing']['new_processed']}")
-    context.log.info(f"   - Total in Milvus: {summary['vector_processing']['total_in_milvus']}")
-    context.log.info(f"✅ Pipeline Status: {summary['pipeline_status'].upper()}")
+    # Determine overall pipeline status
+    if (summary['stages']['scraping']['failed_ops'] > 0 or
+        summary['stages']['mart_transformation']['failed_ops'] > 0 or
+        summary['stages']['vector_processing']['status'] == 'failed'):
+        summary['pipeline_status'] = 'partial_failure'
     
+    # Log complete summary
+    context.log.info("🎉 COMPLETE PIPELINE SUMMARY")
+    context.log.info("📥 Scraping:")
+    context.log.info(f"   - Total scraped: {summary['stages']['scraping']['total_scraped']}")
+    context.log.info(f"   - Inserted to Raw BigQuery: {summary['stages']['scraping']['total_inserted']}")
+    
+    context.log.info("🔄 Mart Transformation:")
+    context.log.info(f"   - Total rows in Mart: {summary['stages']['mart_transformation']['total_rows']}")
+    context.log.info(f"   - Summary tables updated: {summary['stages']['mart_transformation']['successful_ops']}")
+    
+    context.log.info("🤖 Vector Processing:")
+    context.log.info(f"   - New processed to Milvus: {summary['stages']['vector_processing']['processed_count']}")
+    context.log.info(f"   - Total in Milvus: {summary['stages']['vector_processing']['total_in_milvus']}")
+    
+    context.log.info(f"✅ Pipeline Status: {summary['pipeline_status'].upper()}")
+
     # Save complete summary
     try:
         output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "complete_pipeline_summary.json"

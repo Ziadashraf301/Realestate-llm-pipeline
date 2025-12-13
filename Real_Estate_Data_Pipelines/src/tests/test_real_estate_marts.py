@@ -1,23 +1,15 @@
-import os
 import warnings
-from pathlib import Path
-from src.config import Config
+from src.config import config
 from src.logger import LoggerFactory
 from src.databases import Big_Query_Database
 from src.etl import PropertyMartBuilder
 
 
 def test_mart_builder_operations():
-    """Execute mart-building pipeline with clean structured logging"""
-
-    # Path Configuration
-    PROJECT_ROOT = Path(__file__).resolve().parents[3]
-    CONFIG_DIR = PROJECT_ROOT / "Configs"
-    CONFIG_PATH = CONFIG_DIR / "Real_Estate_Data_Pipelines.json"
-    GOOGLE_APPLICATION_CREDENTIALS = CONFIG_DIR / "big_query_service_account.json"
+    """Execute mart-building pipeline with logging"""
 
     # Load config
-    cfg = Config(CONFIG_PATH)
+    cfg = config
 
     # Initialize logger
     logger = LoggerFactory.create_logger(log_dir=cfg.LOG_DIR)
@@ -32,11 +24,7 @@ def test_mart_builder_operations():
 
     warnings.filterwarnings("ignore")
 
-    # Set environment variables
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(GOOGLE_APPLICATION_CREDENTIALS)
-
-
-    logger.info(f"✅ Loaded configuration from {CONFIG_PATH}")
+    logger.info(f"✅ Loaded configuration")
 
     # Initialize database client
     database = Big_Query_Database(
@@ -59,13 +47,13 @@ def test_mart_builder_operations():
     logger.info("🚀 Starting mart building pipeline...\n")
 
     try:
-        # STEP 1 – Create Main Mart Table
-        logger.info("🔧 Step 1: Creating main mart table...")
+        # Create Main Mart Table
+        logger.info("🔧 Creating main mart table...")
         rows = mart_builder.create_mart_table()
         logger.info(f"✅ Main mart table created with {rows} rows\n")
 
-        # STEP 2 – Create Summary Tables
-        logger.info("📊 Step 2: Creating summary tables...")
+        # Create Summary Tables
+        logger.info("📊 Creating summary tables...")
 
         mart_builder.create_location_summary_mart()
         mart_builder.create_property_type_summary_mart()
@@ -74,8 +62,8 @@ def test_mart_builder_operations():
 
         logger.info("✅ All summary tables created successfully\n")
 
-        # STEP 3 – Create Data Quality Report
-        logger.info("🧪 Step 3: Generating data quality report...")
+        # Create Data Quality Report
+        logger.info("🧪 Generating data quality report...")
         mart_builder.create_data_quality_report_mart()
         logger.info("✅ Data quality report generated successfully\n")
 

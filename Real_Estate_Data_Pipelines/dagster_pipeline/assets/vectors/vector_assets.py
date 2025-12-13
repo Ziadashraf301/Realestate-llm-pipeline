@@ -1,7 +1,7 @@
 """Vector processing assets for real estate pipeline"""
 from datetime import datetime
 from dagster import asset, OpExecutionContext, RetryPolicy
-from ...config.settings import config
+from src.config import config
 from ...resources.config_resources import VectorResource
 
 
