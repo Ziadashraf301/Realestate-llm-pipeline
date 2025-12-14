@@ -64,26 +64,49 @@ def scrape_city_listing(
         output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / filename
         save_to_json(filename=str(output_path), results=results, logger=logger)
         
-        return {
-            "city": city,
-            "listing_type": listing_type,
-            "scraped_count": len(results),
-            "inserted_count": inserted_count,
-            "timestamp": datetime.now().isoformat(),
-            "status": "success"
-        }
+        # At the end, return with metadata
+        from dagster import Output, MetadataValue
+        
+        return Output(
+            value={
+                "city": city,
+                "listing_type": listing_type,
+                "scraped_count": len(results),
+                "inserted_count": inserted_count,
+                "timestamp": datetime.now().isoformat(),
+                "status": "success"
+            },
+            metadata={
+                "scraped_count": MetadataValue.int(len(results)),
+                "inserted_count": MetadataValue.int(inserted_count),
+                "status": MetadataValue.text("success"),
+                "city": MetadataValue.text(city),
+                "listing_type": MetadataValue.text(listing_type)
+            }
+        )
         
     except Exception as e:
         context.log.error(f"❌ Error scraping {city.title()} {listing_type}: {str(e)}")
-        return {
-            "city": city,
-            "listing_type": listing_type,
-            "scraped_count": 0,
-            "inserted_count": 0,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+        
+        from dagster import Output, MetadataValue
+        
+        return Output(
+            value={
+                "city": city,
+                "listing_type": listing_type,
+                "scraped_count": 0,
+                "inserted_count": 0,
+                "timestamp": datetime.now().isoformat(),
+                "status": "failed",
+                "error": str(e)
+            },
+            metadata={
+                "scraped_count": MetadataValue.int(0),
+                "inserted_count": MetadataValue.int(0),
+                "status": MetadataValue.text("failed"),
+                "error": MetadataValue.text(str(e))
+            }
+        )
 
 
 def create_scraping_asset(city: str, listing_type: str):
@@ -128,17 +151,9 @@ def get_all_scraping_assets() -> List:
     return assets
 
 
-def get_scraping_asset_names() -> List[str]:
-    """
-    Get list of all scraping asset names for use in job definitions
-    
-    Returns:
-        List of asset names as strings
-    """
-    return [
-        f"scrape_{cfg['city']}_{cfg['listing_type'].replace('-', '_')}"
-        for cfg in SCRAPING_CONFIG
-    ]
+def get_scraping_asset_names():
+    """Get list of all scraping asset names"""
+    return [str(asset.key.path[-1]) for asset in scraping_assets]
 
 # Generate all assets dynamically
 scraping_assets = get_all_scraping_assets()

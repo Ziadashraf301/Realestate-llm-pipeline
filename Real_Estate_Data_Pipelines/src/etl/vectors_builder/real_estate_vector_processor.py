@@ -102,11 +102,13 @@ class PropertyVectorBuilder:
         """
         self.logger.info("Starting Vector ETL Pipeline...")
 
-        # Extract the ids properties
-        
-        # Step 1: Extract from RDBMS
+        # Extract the ids properties from the vectordb
+        vectodb_ids = self.vectordb_client.get_property_ids()
+
+        # Extract from RDBMS
         self.logger.info("Extracting data from DATABASE...")
-        properties = self.rdbms_client.get_validated_properties_for_vectordb(limit=limit)
+        properties = self.rdbms_client.get_validated_properties_for_vectordb(limit=limit, 
+                                                                             exclude_ids = vectodb_ids)
         
         if not properties:
             self.logger.warning("No properties to process")

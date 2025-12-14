@@ -4,6 +4,7 @@ import tempfile
 import json as json_lib
 from datetime import datetime
 import time
+from typing import List, Optional
 from src.logger import LoggerFactory
 from .schemes import PropertySchema
 from ..db_models import PropertyModel
@@ -189,25 +190,48 @@ class Big_Query_Database():
             self.logger.info(f"⚠️  Could not load existing URLs (table may not exist yet): {e}")
             return set()
 
-
-    
-    def get_validated_properties_for_vectordb(self, limit=None):
+    def get_validated_properties_for_vectordb(
+        self,
+        limit: Optional[int] = None,
+        exclude_ids: Optional[List[str]] = None
+    ):
         """
         Pull ONLY validated, high-quality properties from BigQuery mart for Vector Database.
-        
+
         Args:
             limit: Maximum number of rows (None for all)
-            
+            exclude_ids: Property IDs already in the vector DB (to skip)
+
         Returns:
             List of validated property dicts ready for vectorization
         """
         if not self.client:
             raise RuntimeError("Not connected to BigQuery")
-        
+
         self.logger.info("🔍 Fetching validated properties from BigQuery mart...")
-        
+
         limit_clause = f"LIMIT {limit}" if limit else ""
-        
+
+        exclude_clause = ""
+        job_config = None
+
+        if exclude_ids:
+            exclude_clause = """
+            AND property_id IS NOT NULL
+            AND NOT EXISTS (
+                SELECT 1
+                FROM UNNEST(@exclude_ids) AS pid
+                WHERE pid = property_id
+            )
+            """
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ArrayQueryParameter(
+                        "exclude_ids", "STRING", exclude_ids
+                    )
+                ]
+            )
+
         query = f"""
         SELECT
             property_id,
@@ -226,35 +250,33 @@ class Big_Query_Database():
             floor_number,
             latitude,
             longitude
-            
         FROM `{self.mart_table_ref}`
-        WHERE 
-            -- Quality filters
+        WHERE
             data_quality = 'complete'
-            AND has_description = true
+            AND has_description = TRUE
             AND price_egp > 1000
             AND area_sqm >= 10
             AND bedrooms BETWEEN 0 AND 25
             AND bathrooms BETWEEN 0 AND 15
             AND LENGTH(title) >= 3
             AND LENGTH(description) >= 10
-        
+            {exclude_clause}
         {limit_clause}
         """
-        
+
         try:
-            query_job = self.client.query(query)
+            query_job = self.client.query(query, job_config=job_config)
             results = query_job.result()
-            
+
             properties = [dict(row.items()) for row in results]
-            
+
             self.logger.info(f"✅ Retrieved {len(properties):,} validated properties")
             return properties
-            
+
         except Exception as e:
             self.logger.error(f"❌ Failed to fetch properties: {e}")
             raise
-    
+
 
     def create_mart_table(self):
         """Creates partitioned mart table with comprehensive data cleaning and enrichment."""

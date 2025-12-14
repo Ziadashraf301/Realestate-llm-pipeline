@@ -2,40 +2,73 @@
 import json
 from datetime import datetime
 from dagster import asset, AssetExecutionContext, RetryPolicy
+from pathlib import Path
 
 from src.config import config
 
 # Import all scraping assets dynamically
-from ..scraping.scraping_assets import scraping_assets
+from ..scraping.scraping_assets import get_scraping_asset_names
 
 # Import all mart assets dynamically
-from ..mart.mart_assets import mart_assets
+from ..mart.mart_assets import get_mart_asset_names
 
-# Generate dynamic dependencies for scraping_summary
-scraping_deps = [str(asset_def.key.path[-1]) for asset_def in scraping_assets]
+
+# Generate dynamic dependencies
+scraping_deps = get_scraping_asset_names()
+mart_deps = get_mart_asset_names()
+
 
 @asset(
     description="Summary of all scraping operations - Auto-discovers all scraping assets",
     group_name="real_estate_scraping",
     deps=scraping_deps,
     retry_policy=RetryPolicy(max_retries=2, delay=300)
-
 )
-def scraping_summary(context: AssetExecutionContext, **upstream_assets):
+def scraping_summary(context: AssetExecutionContext):
     """
     Generate summary of all scraping operations.
-    Automatically discovers and summarizes ALL scraping assets.
+    Loads results from Dagster's asset storage.
     """
     
-    # Filter to get only scraping results (dicts with expected keys)
     all_results = []
     scraping_asset_names = []
     
-    for asset_name, asset_value in upstream_assets.items():
-        # Check if it's a scraping asset result
-        if isinstance(asset_value, dict) and ('scraped_count' in asset_value or 'inserted_count' in asset_value):
-            all_results.append(asset_value)
-            scraping_asset_names.append(asset_name)
+    # Get asset names dynamically
+    asset_names = get_scraping_asset_names()
+    
+    # Load each scraping asset's output from storage
+    for asset_name in asset_names:
+        try:
+            # Load the materialized value from the IO manager
+            from dagster import AssetKey
+            
+            # Try to load the asset value
+            # This uses Dagster's internal storage
+            asset_key = AssetKey([asset_name])
+            
+            # Get the latest materialization
+            materialization = context.instance.get_latest_materialization_event(asset_key)
+            
+            if materialization and materialization.asset_materialization:
+                # Extract metadata
+                metadata = materialization.asset_materialization.metadata
+                
+                # Build result dict from metadata
+                result_dict = {
+                    'scraped_count': metadata.get('scraped_count').value if metadata.get('scraped_count') else 0,
+                    'inserted_count': metadata.get('inserted_count').value if metadata.get('inserted_count') else 0,
+                    'status': metadata.get('status').value if metadata.get('status') else 'unknown'
+                }
+                
+                all_results.append(result_dict)
+                scraping_asset_names.append(asset_name)
+                
+                context.log.info(f"✅ Loaded {asset_name}: {result_dict}")
+            else:
+                context.log.warning(f"⚠️ No materialization found for {asset_name}")
+                
+        except Exception as e:
+            context.log.error(f"❌ Error loading {asset_name}: {e}")
     
     # Calculate summary statistics
     total_scraped = sum(r.get('scraped_count', 0) for r in all_results)
@@ -63,19 +96,32 @@ def scraping_summary(context: AssetExecutionContext, **upstream_assets):
     context.log.info(f"💾 Total properties inserted to BigQuery: {total_inserted}")
     context.log.info(f"📋 Operations: {', '.join(scraping_asset_names)}")
     
+    # Save summary to file
     try:
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping_summary.json"
-        with open(output_path, 'w') as f:
-            json.dump(summary, f, indent=2)
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "scraping_summary.json"
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
+        
         context.log.info(f"✅ Summary saved to {output_path}")
     except Exception as e:
         context.log.error(f"⚠️ Could not save summary: {e}")
     
-    return summary
-
-
-# Generate dynamic dependencies for mart_transformation_summary
-mart_deps = [str(asset_def.key.path[-1]) for asset_def in mart_assets]
+    # Return with metadata
+    from dagster import Output, MetadataValue
+    
+    return Output(
+        value=summary,
+        metadata={
+            "total_operations": MetadataValue.int(total_operations),
+            "total_properties_scraped": MetadataValue.int(total_scraped),
+            "total_properties_inserted": MetadataValue.int(total_inserted),
+            "successful_operations": MetadataValue.int(successful),
+            "failed_operations": MetadataValue.int(failed)
+        }
+    )
 
 
 @asset(
@@ -83,24 +129,45 @@ mart_deps = [str(asset_def.key.path[-1]) for asset_def in mart_assets]
     group_name="real_estate_mart",
     deps=mart_deps,
     retry_policy=RetryPolicy(max_retries=2, delay=300)
-
 )
-def mart_transformation_summary(context: AssetExecutionContext, **upstream_assets):
+def mart_transformation_summary(context: AssetExecutionContext):
     """
     Generate summary of all mart transformation operations.
-    Automatically discovers and summarizes ALL mart assets.
+    Loads results from Dagster's asset storage.
     """
     
-    # Filter to get only mart results
     all_results = []
-    mart_asset_names = []
+    mart_asset_names_list = []
     
-    for asset_name, asset_value in upstream_assets.items():
-        # Check if it's a mart asset result (exclude scraping_summary)
-        if isinstance(asset_value, dict) and asset_name != 'scraping_summary':
-            if 'row_count' in asset_value or 'table_name' in asset_value:
-                all_results.append(asset_value)
-                mart_asset_names.append(asset_name)
+    # Get asset names dynamically
+    asset_names = get_mart_asset_names()
+    
+    # Load each mart asset's output from storage
+    for asset_name in asset_names:
+        try:
+            from dagster import AssetKey
+            
+            asset_key = AssetKey([asset_name])
+            materialization = context.instance.get_latest_materialization_event(asset_key)
+            
+            if materialization and materialization.asset_materialization:
+                metadata = materialization.asset_materialization.metadata
+                
+                result_dict = {
+                    'table_name': asset_name,
+                    'row_count': metadata.get('row_count').value if metadata.get('row_count') else 0,
+                    'status': metadata.get('status').value if metadata.get('status') else 'unknown'
+                }
+                
+                all_results.append(result_dict)
+                mart_asset_names_list.append(asset_name)
+                
+                context.log.info(f"✅ Loaded {asset_name}: {result_dict}")
+            else:
+                context.log.warning(f"⚠️ No materialization found for {asset_name}")
+                
+        except Exception as e:
+            context.log.error(f"❌ Error loading {asset_name}: {e}")
     
     # Calculate statistics
     total_rows_processed = sum(r.get('row_count', 0) for r in all_results)
@@ -114,7 +181,7 @@ def mart_transformation_summary(context: AssetExecutionContext, **upstream_asset
         "total_rows_processed": total_rows_processed,
         "successful_operations": successful,
         "failed_operations": failed,
-        "operations": mart_asset_names,
+        "operations": mart_asset_names_list,
         "details": all_results
     }
     
@@ -123,17 +190,33 @@ def mart_transformation_summary(context: AssetExecutionContext, **upstream_asset
     context.log.info(f"✅ Successful transformations: {successful}/{total_operations}")
     context.log.info(f"❌ Failed transformations: {failed}/{total_operations}")
     context.log.info(f"📊 Total rows processed: {total_rows_processed}")
-    context.log.info(f"📋 Tables: {', '.join(mart_asset_names)}")
+    context.log.info(f"📋 Tables: {', '.join(mart_asset_names_list)}")
     
+    # Save summary
     try:
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "mart_summary.json"
-        with open(output_path, 'w') as f:
-            json.dump(summary, f, indent=2)
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "mart_summary.json"
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
+        
         context.log.info(f"✅ Mart summary saved to {output_path}")
     except Exception as e:
         context.log.error(f"⚠️ Could not save mart summary: {e}")
     
-    return summary
+    # Return with metadata
+    from dagster import Output, MetadataValue
+    
+    return Output(
+        value=summary,
+        metadata={
+            "total_operations": MetadataValue.int(total_operations),
+            "total_rows_processed": MetadataValue.int(total_rows_processed),
+            "successful_operations": MetadataValue.int(successful),
+            "failed_operations": MetadataValue.int(failed)
+        }
+    )
 
 
 @asset(
@@ -142,15 +225,58 @@ def mart_transformation_summary(context: AssetExecutionContext, **upstream_asset
     deps=["scraping_summary", "mart_transformation_summary", "process_to_milvus"],
     retry_policy=RetryPolicy(max_retries=2, delay=300)
 )
-def complete_pipeline_summary(
-    context: AssetExecutionContext,
-    scraping_summary: dict,
-    mart_transformation_summary: dict,
-    process_to_milvus: dict
-):
+def complete_pipeline_summary(context: AssetExecutionContext):
     """
     Generate complete pipeline summary including all stages.
     """
+    
+    # Load summaries from storage
+    from dagster import AssetKey
+    
+    scraping_summary = {}
+    mart_transformation_summary = {}
+    process_to_milvus_result = {}
+    
+    try:
+        # Load scraping summary
+        scraping_event = context.instance.get_latest_materialization_event(
+            AssetKey(["scraping_summary"])
+        )
+        if scraping_event and scraping_event.asset_materialization:
+            metadata = scraping_event.asset_materialization.metadata
+            scraping_summary = {
+                'total_properties_scraped': metadata.get('total_properties_scraped').value if metadata.get('total_properties_scraped') else 0,
+                'total_properties_inserted': metadata.get('total_properties_inserted').value if metadata.get('total_properties_inserted') else 0,
+                'successful_operations': metadata.get('successful_operations').value if metadata.get('successful_operations') else 0,
+                'failed_operations': metadata.get('failed_operations').value if metadata.get('failed_operations') else 0,
+            }
+        
+        # Load mart summary
+        mart_event = context.instance.get_latest_materialization_event(
+            AssetKey(["mart_transformation_summary"])
+        )
+        if mart_event and mart_event.asset_materialization:
+            metadata = mart_event.asset_materialization.metadata
+            mart_transformation_summary = {
+                'total_rows_processed': metadata.get('total_rows_processed').value if metadata.get('total_rows_processed') else 0,
+                'successful_operations': metadata.get('successful_operations').value if metadata.get('successful_operations') else 0,
+                'failed_operations': metadata.get('failed_operations').value if metadata.get('failed_operations') else 0,
+            }
+        
+        # Load vector processing
+        vector_event = context.instance.get_latest_materialization_event(
+            AssetKey(["process_to_milvus"])
+        )
+        if vector_event and vector_event.asset_materialization:
+            metadata = vector_event.asset_materialization.metadata
+            process_to_milvus_result = {
+                'processed_count': metadata.get('processed_count').value if metadata.get('processed_count') else 0,
+                'total_count': metadata.get('total_count').value if metadata.get('total_count') else 0,
+                'status': metadata.get('status').value if metadata.get('status') else 'unknown'
+            }
+            
+    except Exception as e:
+        context.log.error(f"Error loading summary data: {e}")
     
     # Aggregate data from all stages
     summary = {
@@ -169,9 +295,9 @@ def complete_pipeline_summary(
                 "failed_ops": mart_transformation_summary.get('failed_operations', 0)
             },
             "vector_processing": {
-                "processed_count": process_to_milvus.get('processed_count', 0),
-                "total_in_milvus": process_to_milvus.get('total_count', 0),
-                "status": process_to_milvus.get('status', 'unknown')
+                "processed_count": process_to_milvus_result.get('processed_count', 0),
+                "total_in_milvus": process_to_milvus_result.get('total_count', 0),
+                "status": process_to_milvus_result.get('status', 'unknown')
             }
         }
     }
@@ -197,12 +323,16 @@ def complete_pipeline_summary(
     context.log.info(f"   - Total in Milvus: {summary['stages']['vector_processing']['total_in_milvus']}")
     
     context.log.info(f"✅ Pipeline Status: {summary['pipeline_status'].upper()}")
-
+    
     # Save complete summary
     try:
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "complete_pipeline_summary.json"
-        with open(output_path, 'w') as f:
-            json.dump(summary, f, indent=2)
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "complete_pipeline_summary.json"
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
+        
         context.log.info(f"✅ Complete pipeline summary saved to {output_path}")
     except Exception as e:
         context.log.error(f"⚠️ Could not save pipeline summary: {e}")

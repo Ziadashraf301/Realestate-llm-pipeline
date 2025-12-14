@@ -32,6 +32,7 @@ class Milvus_VectorDatabase():
         if self.client:
             self.client.close()
             self.logger.info("Disconnected from Milvus")
+             
                     
     def create_collection(self):
         """Create collection using client API"""
@@ -62,10 +63,12 @@ class Milvus_VectorDatabase():
             for field in schema_fields["fields"]:
                 schema.add_field(**field)
             
-            self.logger.info(f"📋 Schema created with {len(schema_fields["fields"])} fields")
+            self.logger.info(f"📋 Schema created with {len(schema_fields['fields'])} fields")
             
             # Create index for vector field
             index_params = self.client.prepare_index_params()
+            
+            # Add vector index for embeddings
             index_params.add_index(
                 field_name="embedding",
                 index_type="IVF_FLAT",
@@ -73,7 +76,16 @@ class Milvus_VectorDatabase():
                 params={"nlist": 128}
             )
             
-            self.logger.info("📊 Vector index configured (IVF_FLAT, COSINE)")
+            # Add scalar index for property_id
+            index_params.add_index(
+                field_name="property_id",
+                index_type="Trie",
+                metric_type="L2"
+            )
+            
+            self.logger.info("📊 Indexes configured:")
+            self.logger.info("  - Vector: embedding (IVF_FLAT, COSINE)")
+            self.logger.info("  - Scalar: property_id (TRIE)")
             
             # Create collection with schema and index
             self.client.create_collection(
@@ -85,7 +97,8 @@ class Milvus_VectorDatabase():
             self.logger.info(f"✅ Collection '{self.collection_name}' created successfully!")
             self.logger.info(f" - Embedding dimension: {self.embedding_dim}")
             self.logger.info(f" - Metric type: COSINE similarity")
-            self.logger.info(f" - Index type: IVF_FLAT")
+            self.logger.info(f" - Vector index: IVF_FLAT")
+            self.logger.info(f" - Scalar index: property_id (TRIE)")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create collection: {e}")
@@ -206,3 +219,72 @@ class Milvus_VectorDatabase():
             'failed': len(failed_records),
             'failed_records': failed_records
         }
+    
+
+    def get_property_ids(self, batch_size: int = 10_000) -> List[Any]:
+        """
+        Fetch all unique property_ids from the Milvus collection using cursor-based pagination.
+        """
+        if not self.client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        
+        # Ensure collection is loaded and property_id has index
+        self.client.load_collection(self.collection_name)
+        
+        self.logger.info("🔍 Fetching unique property_ids from Milvus...")
+        
+        unique_ids = set()
+        last_property_id = None
+        total_fetched = 0
+        iteration = 0
+        
+        try:
+            while True:
+                iteration += 1
+                
+                # Build filter for cursor-based pagination
+                filter_expression = ""
+                if last_property_id is not None:
+                    filter_expression = f'property_id > "{last_property_id}"'
+                
+                # Query with index support
+                results = self.client.query(
+                    collection_name=self.collection_name,
+                    filter=filter_expression,
+                    output_fields=["property_id"],
+                    limit=batch_size,
+                    order_by=[("property_id", "ASC")]
+                )
+                
+                if not results:
+                    break
+                
+                batch_count = len(results)
+                total_fetched += batch_count
+                
+                for row in results:
+                    if "property_id" in row:
+                        unique_ids.add(row["property_id"])
+                        last_property_id = row["property_id"]
+                
+                # Log progress every 10 iterations
+                if iteration % 10 == 0:
+                    self.logger.debug(
+                        f"Progress: iteration {iteration}, "
+                        f"fetched {total_fetched:,} records"
+                    )
+                
+                # Exit when we've fetched all records
+                if batch_count < batch_size:
+                    break
+            
+            self.logger.info(
+                f"✅ Retrieved {len(unique_ids):,} unique property_ids "
+                f"from {total_fetched:,} total records"
+            )
+            
+            return sorted(list(unique_ids))
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to fetch property_ids: {e}")      
+            raise

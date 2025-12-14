@@ -51,41 +51,53 @@ def transform_mart_table(
         method = getattr(mart_builder, mart_method)
         result = method()
         
-        # Build return dictionary based on mart type
+       # Build return dictionary based on mart type
+        from dagster import Output, MetadataValue
+        
         if is_main_mart:
             context.log.info(f"✅ {mart_name} created with total {result:,} rows")
-            return {
-                "total_rows": result,
-                "timestamp": datetime.now().isoformat(),
-                "status": "success"
-            }
+            return Output(
+                value={
+                    "row_count": result,
+                    "table_name": mart_name,
+                    "timestamp": datetime.now().isoformat(),
+                    "status": "success"
+                },
+                metadata={
+                    "row_count": MetadataValue.int(result),
+                    "table_name": MetadataValue.text(mart_name),
+                    "status": MetadataValue.text("success")
+                }
+            )
         else:
             context.log.info(f"✅ {mart_name} snapshot created successfully")
-            return {
-                "snapshot_date": datetime.now().date().isoformat(),
-                "timestamp": datetime.now().isoformat(),
-                "status": "success"
-            }
+            return Output(
+                value={
+                    "row_count": 1,
+                    "table_name": mart_name,
+                    "snapshot_date": datetime.now().date().isoformat(),
+                    "timestamp": datetime.now().isoformat(),
+                    "status": "success"
+                },
+                metadata={
+                    "row_count": MetadataValue.int(1),
+                    "table_name": MetadataValue.text(mart_name),
+                    "status": MetadataValue.text("success")
+                }
+            )
         
     except Exception as e:
         context.log.error(f"❌ Error creating {mart_name}: {str(e)}")
         import traceback
         context.log.error(traceback.format_exc())
         
-        if is_main_mart:
-            return {
-                "total_rows": 0,
-                "timestamp": datetime.now().isoformat(),
-                "status": "failed",
-                "error": str(e)
-            }
-        else:
-            return {
-                "snapshot_date": datetime.now().date().isoformat(),
-                "timestamp": datetime.now().isoformat(),
-                "status": "failed",
-                "error": str(e)
-            }
+        return {
+            "row_count": 0,  # ← Consistent field name
+            "table_name": mart_name,  # ← Added
+            "timestamp": datetime.now().isoformat(),
+            "status": "failed",
+            "error": str(e)
+        }
 
 
 def create_mart_asset(
@@ -122,7 +134,7 @@ def create_mart_asset(
         return transform_mart_table(
             context,
             mart_resource,
-            asset_name.replace('_', ' ').title(),
+            asset_name,  # ← Pass asset_name directly
             mart_method,
             is_main_mart
         )
