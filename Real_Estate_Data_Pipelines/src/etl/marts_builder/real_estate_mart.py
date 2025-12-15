@@ -27,29 +27,46 @@ class PropertyMartBuilder:
         self.logger.info("Starting: Create mart table")
         row_count = self.db_client.create_mart_table()
         self.logger.info(f"Mart table created successfully with {row_count} rows")
+        
         return row_count
+
 
     def create_location_summary_mart(self):
         self.logger.info("Starting: Create location summary mart")
-        self.db_client.create_location_summary()
+        row_count =  self.db_client.create_location_summary()
         self.logger.info("Location summary mart created successfully")
+
+        return row_count
+    
 
     def create_property_type_summary_mart(self):
         self.logger.info("Starting: Create property type summary mart")
-        self.db_client.create_property_type_summary()
+        row_count = self.db_client.create_property_type_summary()
         self.logger.info("Property type summary mart created successfully")
+
+        return row_count
+    
 
     def create_time_series_summary_mart(self):
         self.logger.info("Starting: Create time series summary mart")
-        self.db_client.create_time_series_summary()
+        row_count = self.db_client.create_time_series_summary()
         self.logger.info("Time series summary mart created successfully")
+
+        return row_count
+    
 
     def create_price_analysis_summary_mart(self):
         self.logger.info("Starting: Create price analysis summary mart")
-        self.db_client.create_price_analysis_summary()
+        row_count =  self.db_client.create_price_analysis_summary()
         self.logger.info("Price analysis summary mart created successfully")
 
+        return row_count
+    
+    
     def create_data_quality_report_mart(self):
         self.logger.info("Starting: Create data quality report mart")
-        self.db_client.create_data_quality_report()
+        row_count = self.db_client.create_data_quality_report()
         self.logger.info("Data quality report mart created successfully")
+
+        return row_count
+    

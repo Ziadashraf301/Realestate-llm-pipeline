@@ -11,8 +11,7 @@ def transform_mart_table(
     context: OpExecutionContext,
     mart_resource: MartResource,
     mart_name: str,
-    mart_method: str,
-    is_main_mart: bool = False
+    mart_method: str
 ) -> Dict[str, Any]:
     """
     Generic transformation function for any mart table
@@ -22,7 +21,6 @@ def transform_mart_table(
         mart_resource: Mart resource configuration
         mart_name: Name of the mart (for logging)
         mart_method: Method name to call on PropertyMartBuilder
-        is_main_mart: True if this is the main property_mart table
     """
     try:
         context.log.info(f"🔄 Starting {mart_name} transformation...")
@@ -51,12 +49,12 @@ def transform_mart_table(
         method = getattr(mart_builder, mart_method)
         result = method()
         
-       # Build return dictionary based on mart type
+        # Build return dictionary based on mart type
         from dagster import Output, MetadataValue
         
-        if is_main_mart:
-            context.log.info(f"✅ {mart_name} created with total {result:,} rows")
-            return Output(
+
+        context.log.info(f"✅ {mart_name} created with total {result:,} rows")
+        return Output(
                 value={
                     "row_count": result,
                     "table_name": mart_name,
@@ -69,35 +67,29 @@ def transform_mart_table(
                     "status": MetadataValue.text("success")
                 }
             )
-        else:
-            context.log.info(f"✅ {mart_name} snapshot created successfully")
-            return Output(
-                value={
-                    "row_count": 1,
-                    "table_name": mart_name,
-                    "snapshot_date": datetime.now().date().isoformat(),
-                    "timestamp": datetime.now().isoformat(),
-                    "status": "success"
-                },
-                metadata={
-                    "row_count": MetadataValue.int(1),
-                    "table_name": MetadataValue.text(mart_name),
-                    "status": MetadataValue.text("success")
-                }
-            )
         
     except Exception as e:
         context.log.error(f"❌ Error creating {mart_name}: {str(e)}")
         import traceback
         context.log.error(traceback.format_exc())
         
-        return {
-            "row_count": 0,  
-            "table_name": mart_name,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+        from dagster import Output, MetadataValue
+        
+        return Output(
+            value={
+                "row_count": 0,
+                "table_name": mart_name,
+                "timestamp": datetime.now().isoformat(),
+                "status": "failed",
+                "error": str(e)
+            },
+            metadata={
+                "row_count": MetadataValue.int(0),
+                "table_name": MetadataValue.text(mart_name),
+                "status": MetadataValue.text("failed"),
+                "error": MetadataValue.text(str(e))
+            }
+        )
 
 
 def create_mart_asset(
@@ -105,8 +97,7 @@ def create_mart_asset(
     description: str,
     group_name: str,
     deps: List[str],
-    mart_method: str,
-    is_main_mart: bool = False
+    mart_method: str
 ):
     """
     Factory function to dynamically create mart assets
@@ -117,7 +108,6 @@ def create_mart_asset(
         group_name: Dagster group name
         deps: List of dependency asset names
         mart_method: Method name to call on PropertyMartBuilder
-        is_main_mart: Whether this is the main property mart
     
     Returns:
         Dagster asset function
@@ -135,8 +125,7 @@ def create_mart_asset(
             context,
             mart_resource,
             asset_name,
-            mart_method,
-            is_main_mart
+            mart_method
         )
     
     return mart_asset
@@ -156,8 +145,7 @@ def get_all_mart_assets() -> List:
             description=mart_config["description"],
             group_name=mart_config["group_name"],
             deps=mart_config["deps"],
-            mart_method=mart_config["mart_method"],
-            is_main_mart=mart_config.get("is_main_mart", False)
+            mart_method=mart_config["mart_method"]
         )
         assets.append(asset_func)
     

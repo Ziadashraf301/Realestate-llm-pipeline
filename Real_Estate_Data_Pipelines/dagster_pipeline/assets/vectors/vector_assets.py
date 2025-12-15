@@ -1,6 +1,6 @@
 """Vector processing assets for real estate pipeline"""
 from datetime import datetime
-from dagster import asset, OpExecutionContext, RetryPolicy
+from dagster import asset, OpExecutionContext, RetryPolicy, Output, MetadataValue
 from src.config import config
 from ...resources.config_resources import VectorResource
 
@@ -73,24 +73,41 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
         context.log.info(f"❌ Failed validations: {results['failed']:,}")
         context.log.info(f"📊 Total in Milvus: {stats}")
         
-        return {
-            "total_processed": results['total'],
-            "new_inserted": results['inserted'],
-            "failed_validations": results['failed'],
-            "total_in_milvus": stats,
-            "timestamp": datetime.now().isoformat(),
-            "status": "success"
-        }
+        # Return with metadata
+        return Output(
+            value={
+                "processed_count": results['inserted'],
+                "total_count": stats,
+                "failed_validations": results['failed'],
+                "timestamp": datetime.now().isoformat(),
+                "status": "success"
+            },
+            metadata={
+                "processed_count": MetadataValue.int(results['inserted']),
+                "total_count": MetadataValue.int(stats),
+                "failed_validations": MetadataValue.int(results['failed']),
+                "status": MetadataValue.text("success")
+            }
+        )
         
     except Exception as e:
         context.log.error(f"❌ Error in vector processing: {str(e)}")
         import traceback
         context.log.error(traceback.format_exc())
-        return {
-            "total_processed": 0,
-            "new_inserted": 0,
-            "failed_validations": 0,
-            "timestamp": datetime.now().isoformat(),
-            "status": "failed",
-            "error": str(e)
-        }
+        
+        return Output(
+            value={
+                "processed_count": 0,
+                "total_count": 0,
+                "failed_validations": 0,
+                "timestamp": datetime.now().isoformat(),
+                "status": "failed",
+                "error": str(e)
+            },
+            metadata={
+                "processed_count": MetadataValue.int(0),
+                "total_count": MetadataValue.int(0),
+                "status": MetadataValue.text("failed"),
+                "error": MetadataValue.text(str(e))
+            }
+        )

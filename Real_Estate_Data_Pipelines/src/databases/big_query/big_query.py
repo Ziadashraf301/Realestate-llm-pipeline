@@ -565,7 +565,15 @@ class Big_Query_Database():
         
         try:
             self.client.query(query)
+
+            # Get row count
+            time.sleep(3)
+
+            row_count = self.client.get_table(summary_ref).num_rows
             self.logger.info(f"✅ Location summary created: {summary_ref}")
+            self.logger.info(f"📊 Total rows: {row_count:,}")
+            return row_count
+        
         except Exception as e:
             self.logger.error(f"⚠️ Error creating location summary: {str(e)}")
 
@@ -608,7 +616,16 @@ class Big_Query_Database():
         
         try:
             self.client.query(query)
+
+            # Get row count
+            time.sleep(3)
+
+            row_count = self.client.get_table(summary_ref).num_rows
             self.logger.info(f"✅ Property type summary created: {summary_ref}")
+            self.logger.info(f"📊 Total rows: {row_count:,}")
+
+            return row_count
+        
         except Exception as e:
             self.logger.error(f"⚠️ Error creating property type summary: {str(e)}")
 
@@ -648,9 +665,16 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.client.query(query)
-            job.result()
+            self.client.query(query)
+
+            # Get row count
+            time.sleep(3)
+
+            row_count = self.client.get_table(summary_ref).num_rows
             self.logger.info(f"✅ Time series summary created: {summary_ref}")
+            self.logger.info(f"📊 Total rows: {row_count:,}")
+            return row_count
+
         except Exception as e:
             self.logger.error(f"⚠️ Error creating time series summary: {str(e)}")
 
@@ -701,9 +725,17 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.client.query(query)
-            job.result()
+            self.client.query(query)
+
+            # Get row count
+            time.sleep(3)
+
+            row_count = self.client.get_table(summary_ref).num_rows
             self.logger.info(f"✅ Price analysis summary created: {summary_ref}")
+            self.logger.info(f"📊 Total rows: {row_count:,}")
+
+            return row_count
+        
         except Exception as e:
             self.logger.error(f"⚠️ Error creating price analysis summary: {str(e)}")
 
@@ -811,19 +843,23 @@ class Big_Query_Database():
         """
         
         try:
-            job = self.client.query(query)
-            job.result()
+            self.client.query(query)
+
             self.logger.info(f"✅ Data quality report created: {report_ref}")
             
             # Print the report
             results = self.client.query(f"SELECT * FROM `{report_ref}`").result()
-            self.logger.info("\n" + "=" * 60)
             self.logger.info("DATA QUALITY REPORT")
-            self.logger.info("=" * 60)
+
             for row in results:
                 self.logger.info(f"{row.metric_category:20} | {row.metric_name:30} | {row.metric_value}")
-            self.logger.info("=" * 60 + "\n")
-            
+
+
+            row_count = self.client.get_table(report_ref).num_rows
+            self.logger.info(f"📊 Total rows: {row_count:,}")
+
+            return row_count
+        
         except Exception as e:
             self.logger.error(f"⚠️ Error creating data quality report: {str(e)}")
 

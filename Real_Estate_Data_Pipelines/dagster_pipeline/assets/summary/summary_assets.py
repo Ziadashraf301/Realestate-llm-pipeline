@@ -273,6 +273,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
             process_to_milvus_result = {
                 'processed_count': metadata.get('processed_count').value if metadata.get('processed_count') else 0,
                 'total_count': metadata.get('total_count').value if metadata.get('total_count') else 0,
+                'failed_count': metadata.get('failed_validations').value if metadata.get('failed_validations') else 0,
                 'status': metadata.get('status').value if metadata.get('status') else 'unknown'
             }
             
@@ -298,6 +299,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
             "vector_processing": {
                 "processed_count": process_to_milvus_result.get('processed_count', 0),
                 "total_in_milvus": process_to_milvus_result.get('total_count', 0),
+                "failed_count": process_to_milvus_result.get('failed_count', 0),
                 "status": process_to_milvus_result.get('status', 'unknown')
             }
         }
