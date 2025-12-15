@@ -3,7 +3,6 @@ from dagster import ConfigurableResource
 from pydantic import Field
 from src.config import config
 
-
 class ScraperResource(ConfigurableResource):
     """Resource for scraper configuration"""
     project_id: str = Field(default=config.GCP_PROJECT_ID)

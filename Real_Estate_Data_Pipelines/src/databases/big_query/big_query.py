@@ -349,13 +349,13 @@ class Big_Query_Database():
                 CASE 
                     WHEN SAFE_CAST(bedrooms AS INT64) BETWEEN 0 AND 20 
                     THEN SAFE_CAST(bedrooms AS INT64) 
-                    ELSE NULL 
+                    ELSE 0 
                 END AS bedrooms,
                 
                 CASE 
                     WHEN SAFE_CAST(bathrooms AS INT64) BETWEEN 0 AND 15 
                     THEN SAFE_CAST(bathrooms AS INT64) 
-                    ELSE NULL 
+                    ELSE 0 
                 END AS bathrooms,
                 
                 CASE 

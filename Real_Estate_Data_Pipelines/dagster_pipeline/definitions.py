@@ -28,13 +28,11 @@ from .resources.config_resources import (
     VectorResource
 )
 
-
-# DEFINE JOBS
-
 # Get all scraping asset names dynamically
 scraping_asset_names = get_scraping_asset_names()
 mart_asset_names = get_mart_asset_names()
 
+# DEFINE JOBS
 # Complete pipeline job
 complete_pipeline_job = define_asset_job(
     name="complete_real_estate_pipeline",
@@ -46,7 +44,8 @@ complete_pipeline_job = define_asset_job(
 
         # Mart transformation
         *mart_asset_names,
-
+        "mart_transformation_summary",
+        
         # Vector processing
         "process_to_milvus",
 
@@ -88,7 +87,7 @@ vector_processing_only_job = define_asset_job(
 daily_complete_pipeline_schedule = ScheduleDefinition(
     name="daily_complete_pipeline_at_noon",
     job=complete_pipeline_job,
-    cron_schedule="0 12 * * *",  # Every day at 12:00 PM
+    cron_schedule="0 12 * * *",
     execution_timezone="Africa/Cairo",
     description="Runs complete pipeline daily at 12:00 PM Cairo time"
 )
@@ -97,7 +96,7 @@ daily_complete_pipeline_schedule = ScheduleDefinition(
 mart_transformation_schedule = ScheduleDefinition(
     name="mart_transformation_at_2pm",
     job=mart_transformation_only_job,
-    cron_schedule="0 14 * * *",  # Every day at 2:00 PM
+    cron_schedule="0 14 * * *",
     execution_timezone="Africa/Cairo",
     description="Transforms raw data to mart at 2:00 PM Cairo time"
 )
@@ -106,14 +105,13 @@ mart_transformation_schedule = ScheduleDefinition(
 vector_sync_schedule = ScheduleDefinition(
     name="vector_sync_every_6_hours",
     job=vector_processing_only_job,
-    cron_schedule="0 */6 * * *",  # Every 6 hours
+    cron_schedule="0 */6 * * *",
     execution_timezone="Africa/Cairo",
     description="Syncs Mart data to Milvus every 6 hours"
 )
 
 
 # DAGSTER DEFINITIONS
-
 defs = Definitions(
     assets=[
         # Scraping assets

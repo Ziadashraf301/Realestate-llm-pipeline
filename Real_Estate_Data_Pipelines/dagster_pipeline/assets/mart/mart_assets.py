@@ -2,7 +2,6 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
-from src.config import config
 from ...resources.config_resources import MartResource
 from .mart_config import MART_CONFIG
 
@@ -52,7 +51,6 @@ def transform_mart_table(
         # Build return dictionary based on mart type
         from dagster import Output, MetadataValue
         
-
         context.log.info(f"✅ {mart_name} created with total {result:,} rows")
         return Output(
                 value={

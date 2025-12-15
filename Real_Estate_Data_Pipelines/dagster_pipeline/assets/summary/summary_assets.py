@@ -43,7 +43,6 @@ def scraping_summary(context: AssetExecutionContext):
             from dagster import AssetKey
             
             # Try to load the asset value
-            # This uses Dagster's internal storage
             asset_key = AssetKey([asset_name])
             
             # Get the latest materialization

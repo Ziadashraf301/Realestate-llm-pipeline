@@ -1,7 +1,6 @@
 """Vector processing assets for real estate pipeline"""
 from datetime import datetime
 from dagster import asset, OpExecutionContext, RetryPolicy, Output, MetadataValue
-from src.config import config
 from ...resources.config_resources import VectorResource
 
 
@@ -34,6 +33,7 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
             mart_table_id=vector_resource.mart_table_id,
             log_dir=vector_resource.log_dir
         )
+
         bigquery_client.connect()
         
         milvus_client = Milvus_VectorDatabase(
@@ -43,11 +43,13 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
             collection_name=vector_resource.milvus_collection_name,
             embedding_dim=vector_resource.embedding_dim
         )
+        
         milvus_client.connect()
         
         # Create collection if not exists
         milvus_client.create_collection()
-        
+
+        # Create text preprocessor object
         text_preprocessor = TextPreprocessor()
         
         # Initialize pipeline

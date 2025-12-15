@@ -1,6 +1,5 @@
 """Scraping assets - Fully dynamic generation"""
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
 from src.config import config
