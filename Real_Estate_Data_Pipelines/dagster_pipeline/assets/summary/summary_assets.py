@@ -170,6 +170,7 @@ def mart_transformation_summary(context: AssetExecutionContext):
             context.log.error(f"❌ Error loading {asset_name}: {e}")
     
     # Calculate statistics
+    context.log.info(all_results)
     total_rows_processed = sum(r.get('row_count', 0) for r in all_results)
     successful = sum(1 for r in all_results if r.get('status') == 'success')
     failed = sum(1 for r in all_results if r.get('status') == 'failed')

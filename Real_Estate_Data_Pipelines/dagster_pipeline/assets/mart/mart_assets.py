@@ -92,8 +92,8 @@ def transform_mart_table(
         context.log.error(traceback.format_exc())
         
         return {
-            "row_count": 0,  # ← Consistent field name
-            "table_name": mart_name,  # ← Added
+            "row_count": 0,  
+            "table_name": mart_name,
             "timestamp": datetime.now().isoformat(),
             "status": "failed",
             "error": str(e)
@@ -134,7 +134,7 @@ def create_mart_asset(
         return transform_mart_table(
             context,
             mart_resource,
-            asset_name,  # ← Pass asset_name directly
+            asset_name,
             mart_method,
             is_main_mart
         )
