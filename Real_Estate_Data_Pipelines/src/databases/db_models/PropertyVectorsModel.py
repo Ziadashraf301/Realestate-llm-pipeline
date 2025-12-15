@@ -20,7 +20,7 @@ class PropertyVectorsModel(BaseModel):
     embedding: List[float] = Field(..., min_length=384, max_length=384*4)
     
     # Required text fields (strict length requirements)
-    text: str = Field(..., min_length=10, max_length=10000)
+    text: str = Field(..., min_length=10, max_length=12000)
     title: str = Field(..., min_length=3, max_length=500)
     
     # Required categorical fields (strict validation)
@@ -31,7 +31,7 @@ class PropertyVectorsModel(BaseModel):
     price_egp: float = Field(..., gt=1000, lt=1_000_000_000)  # At least 1000 EGP
     bedrooms: int = Field(..., ge=0, le=25)
     bathrooms: int = Field(..., ge=0, le=15)
-    area_sqm: float = Field(..., gt=10, le=10000)
+    area_sqm: float = Field(..., gt=9, le=10000)
     
     # Optional but validated if present
     floor_number: Optional[int] = Field(default=0, ge=-2, le=100)
