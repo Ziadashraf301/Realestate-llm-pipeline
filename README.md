@@ -341,7 +341,7 @@ real_estate/
 | **Data Processing** | BigQuery, Pandas, Regex |
 | **Orchestration** | Dagster |
 | **Vector Database** | Milvus 2.3.3 |
-| **ML/AI** | Sentence Transformers, TensorFlow, Google Gemini 2.0 Flash |
+| **ML/AI** | Sentence Transformers, Google Gemini 2.0 Flash |
 | **Web** | Flask, HTML/CSS/JavaScript |
 | **Scraping** | BeautifulSoup, Requests |
 | **Analytics** | Power BI, DAX |

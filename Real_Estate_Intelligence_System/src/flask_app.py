@@ -5,8 +5,6 @@ Flask Web UI for Real Estate Vector Search + Gemini Summarization (Arabic fields
 from flask import Flask, render_template, request, jsonify
 from pymilvus import connections, Collection
 from sentence_transformers import SentenceTransformer
-import tensorflow as tf
-tf.get_logger().setLevel('ERROR')
 import google.generativeai as genai
 from markdown import markdown
 import os

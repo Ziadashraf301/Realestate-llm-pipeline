@@ -3,13 +3,10 @@ Real Estate Data Preprocessing and Vector Database Storage with Milvus
 Loads data from BigQuery, preprocesses text, generates embeddings, and stores in Milvus
 """
 import warnings
-import tensorflow as tf
-from tqdm import tqdm
 from typing import List, Dict, Any, Optional
 
 # Suppress unnecessary warnings
 warnings.filterwarnings("ignore")
-tf.get_logger().setLevel('ERROR')
 
 import json
 from pathlib import Path

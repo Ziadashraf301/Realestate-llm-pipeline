@@ -1,0 +1,201 @@
+services:
+  # PostgreSQL for Dagster
+  postgres:
+    container_name: dagster-postgres
+    image: postgres:16
+    env_file:
+      - ./env/.env.postgres
+    volumes:
+      - ../volumes/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pipeline_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dagster"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Dagster Webserver & Daemon
+  dagster:
+    container_name: dagster
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../dagster_pipeline:/opt/dagster/app
+      - ../src:/opt/dagster/src
+      - ../raw_data:/opt/dagster/raw_data
+      - ../logs:/opt/dagster/logs
+      - ../volumes/dagster:/opt/dagster/dagster_home
+      - ../../Configs:/opt/Configs
+    env_file:
+      - ./env/.env.dagster
+    depends_on:
+      postgres:
+        condition: service_healthy
+      standalone:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - pipeline_net
+    command: >
+      sh -c "dagster-daemon run &
+             dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/app/workspace.yaml"
+    
+  # etcd for Milvus
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ../volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - pipeline_net
+    healthcheck:
+      test: ["CMD-SHELL", "etcdctl endpoint health --endpoints=http://127.0.0.1:2379"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # MinIO for Milvus
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - ../volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - pipeline_net
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # Milvus Standalone with metrics
+  standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.3.3
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      METRICS_ENABLED: "true"
+      METRICS_PORT: 9091
+    volumes:
+      - ../volumes/milvus:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - pipeline_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/metrics || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Attu Dashboard for Milvus
+  attu:
+    container_name: milvus-attu
+    image: zilliz/attu:v2.3
+    environment:
+      MILVUS_URL: standalone:19530
+    ports:
+      - "8000:3000"
+    depends_on:
+      standalone:
+        condition: service_healthy
+    networks:
+      - pipeline_net
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:v3.0.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - pipeline_net
+    restart: always
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    ports:
+      - "7000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - ./env/.env.grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - pipeline_net
+    restart: always
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - pipeline_net
+    restart: always
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  pipeline_net:
+    name: pipeline_net
+    driver: bridge

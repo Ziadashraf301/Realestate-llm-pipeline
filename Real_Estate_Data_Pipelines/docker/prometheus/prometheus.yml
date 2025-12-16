@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'real-estate-pipeline'
+    environment: 'production'
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          type: 'system-metrics'
+
+  # Milvus metrics
+  - job_name: 'milvus'
+    static_configs:
+      - targets: ['standalone:9091']
+        labels:
+          service: 'milvus'
+          type: 'vector-database'
+    metrics_path: '/metrics'
+
+  # Dagster metrics
+  - job_name: 'dagster'
+    static_configs:
+      - targets: ['dagster:3000']
+        labels:
+          service: 'dagster'
+          type: 'orchestrator'
+    metrics_path: '/metrics'

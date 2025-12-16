@@ -1,0 +1,39 @@
+# Core Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Google Cloud Platform
+google-cloud-bigquery==3.14.1
+google-cloud-core==2.4.1
+google-auth==2.25.2
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+
+# Vector Database (Milvus)
+pymilvus==2.3.4
+
+# Machine Learning & Embeddings
+torch==2.1.2
+transformers==4.36.2
+sentence-transformers==2.2.2
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.3
+
+# Workflow Orchestration (Dagster)
+dagster==1.5.13
+dagster-webserver==1.5.13
+dagster-postgres==0.21.13
+dagster-docker==0.21.13
+
+# Validation & Config
+pydantic==2.5.3
+pyyaml==6.0
+
+# Progress & Utilities
+tqdm==4.66.1
+
+# Monitoring
+prometheus-client==0.19.0

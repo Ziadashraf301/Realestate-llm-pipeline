@@ -1,0 +1,25 @@
+{
+  "GCP_PROJECT_ID": "",
+  "BQ_RAW_DATASET_ID": "",
+  "BQ_RAW_TABLE_ID": "",
+  "BQ_MART_DATASET_ID": "",
+  "BQ_MART_TABLE_ID": "",
+
+  "MAX_PAGES": 10,
+  "LOG_DIR": "logs/",
+
+  "_comment_milvus": "Milvus Vector Database Configuration",
+  "MILVUS_HOST": "",
+  "MILVUS_PORT": "",
+  "MILVUS_COLLECTION_NAME": "",
+  "EMBEDDING_MODEL": "paraphrase-multilingual-MiniLM-L12-v2",
+  "EMBEDDING_DIM": 384,
+  "BATCH_SIZE": 1000,
+  "GENERATION_MODEL": "paraphrase-multilingual-MiniLM-L12-v2",
+  "_comment_alternatives": "Alternative embedding models for better Arabic support",
+  "_comment_alternative_models": [
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "sentence-transformers/distiluse-base-multilingual-cased-v2",
+    "all-MiniLM-L6-v2"
+  ]
+}
