@@ -7,10 +7,10 @@ from pathlib import Path
 from src.config import config
 
 # Import all scraping assets dynamically
-from ..scraping.scraping_assets import get_scraping_asset_names
+from assets.scraping.scraping_assets import get_scraping_asset_names
 
 # Import all mart assets dynamically
-from ..mart.mart_assets import get_mart_asset_names
+from assets.mart.mart_assets import get_mart_asset_names
 
 
 # Generate dynamic dependencies

@@ -1,5 +1,5 @@
 # docker/Dockerfile
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     build-essential \
+    python3-dev \
+    libssl-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
@@ -29,7 +32,7 @@ COPY requirements.txt /opt/dagster/app/requirements.txt
 
 # Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Expose ports
 EXPOSE 3000

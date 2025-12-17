@@ -7,22 +7,22 @@ from dagster import (
 )
 
 # Import assets
-from .assets.scraping.scraping_assets import (
+from assets.scraping.scraping_assets import (
     scraping_assets,
     get_scraping_asset_names
 )
 
-from .assets.mart.mart_assets import (
+from assets.mart.mart_assets import (
     mart_assets,
     get_mart_asset_names
 )
 
-from .assets.vectors.vector_assets import process_to_milvus
+from assets.vectors.vector_assets import process_to_milvus
 
-from .assets.summary.summary_assets import scraping_summary, mart_transformation_summary, complete_pipeline_summary
+from assets.summary.summary_assets import scraping_summary, mart_transformation_summary, complete_pipeline_summary
 
 # Import resources
-from .resources.config_resources import (
+from resources.config_resources import (
     ScraperResource,
     MartResource,
     VectorResource

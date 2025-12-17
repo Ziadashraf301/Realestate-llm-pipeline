@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
 from src.config import config
-from ...resources.config_resources import ScraperResource
+from resources.config_resources import ScraperResource
 from .scraping_config import SCRAPING_CONFIG
 
 

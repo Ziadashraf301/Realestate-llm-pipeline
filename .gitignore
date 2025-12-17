@@ -2,7 +2,8 @@ __pycache__
 .tmp_dagster_home_cfcwdgaf
 Configs/*
 !Configs/*.json.example
-!docker/env/.env.example.*
+Real_Estate_Data_Pipelines/docker/env/*
+!env/.env.example.*
 logs
 raw_data
 .tmp_*
