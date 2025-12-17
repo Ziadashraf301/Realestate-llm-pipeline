@@ -30,7 +30,7 @@ dagster-docker==0.21.13
 
 # Validation & Config
 pydantic==2.5.3
-pyyaml==6.0
+marshmallow==3.20.2
 
 # Progress & Utilities
 tqdm==4.66.1

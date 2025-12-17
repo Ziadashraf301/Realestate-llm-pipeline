@@ -1,56 +1,145 @@
 # Real Estate Data Pipelines Setup
 
-This folder contains the **web scraping, ETL, and VectorDB pipelines**.
+This directory contains the **web scraping, ETL, orchestration, and Vector Database (VectorDB) pipelines** used to collect, process, store, and index real estate data for analytics and ML/LLM use cases.
+
+The stack includes:
+
+* **Dagster** for orchestration
+* **PostgreSQL** for operational storage
+* **Google BigQuery** for analytics (raw + mart layers)
+* **Milvus** for vector storage (embeddings)
+* **Grafana** for monitoring
+* **Docker Compose** for local deployment
+
+---
+
+## Prerequisites
+
+Make sure you have the following installed locally:
+
+* Docker & Docker Compose
+* Git
+* Nano or any text editor
+* A Google Cloud project with BigQuery enabled
 
 ---
 
 ## Run the Pipeline
 
-### 1. Navigate to the Configs directory
+### 1 Navigate to the Configs directory
 
 ```bash
 cd Configs
 ```
 
-### 2. Create Google BigQuery service account file
+---
+
+### 2 Create the Google BigQuery service account file
+
+Copy the example file:
 
 ```bash
 cp big_query_service_account.json.example big_query_service_account.json
 ```
 
-### 3. Add your service account configurations
+Edit the file:
 
 ```bash
 nano big_query_service_account.json
 ```
 
-Fill in your Google service account credentials.
+Fill in your **Google Cloud service account credentials**:
+
+```json
+{
+  "type": "service_account",
+  "project_id": "",
+  "private_key_id": "",
+  "private_key": "",
+  "client_email": "",
+  "client_id": "",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "",
+  "universe_domain": "googleapis.com"
+}
+```
+
+⚠️ **Never commit this file to Git**.
 
 ---
 
-### 4. Create Real Estate Data Pipelines config file
+### 3 Add pipeline-level configurations
+
+Edit the same config file to include pipeline parameters:
+
+```json
+{
+  "GCP_PROJECT_ID": "",
+  "BQ_RAW_DATASET_ID": "",
+  "BQ_RAW_TABLE_ID": "",
+  "BQ_MART_DATASET_ID": "",
+  "BQ_MART_TABLE_ID": "",
+
+  "MAX_PAGES": 10,
+  "LOG_DIR": "logs/",
+
+  "_comment_milvus": "Milvus Vector Database Configuration",
+  "MILVUS_HOST": "",
+  "MILVUS_PORT": "",
+  "MILVUS_COLLECTION_NAME": "",
+
+  "EMBEDDING_MODEL": "paraphrase-multilingual-MiniLM-L12-v2",
+  "EMBEDDING_DIM": 384,
+  "BATCH_SIZE": 1000,
+
+  "_comment_generation": "Used for text similarity / retrieval (not mandatory for automation)",
+  "GENERATION_MODEL": "paraphrase-multilingual-MiniLM-L12-v2",
+
+  "_comment_alternatives": "Alternative embedding models with stronger Arabic support",
+  "_comment_alternative_models": [
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "sentence-transformers/distiluse-base-multilingual-cased-v2",
+    "all-MiniLM-L6-v2"
+  ]
+}
+```
+
+---
+
+### 4 Create the main pipeline config file
 
 ```bash
 cp Real_Estate_Data_Pipelines.json.example Real_Estate_Data_Pipelines.json
 ```
 
-### 5. Add your pipeline configurations
+---
+
+### 5 Edit pipeline-specific settings
 
 ```bash
 nano Real_Estate_Data_Pipelines.json
 ```
 
-Update with your project-specific configurations.
+Use this file to control:
+
+* Scraping sources
+* Ingestion parameters
+* ETL behavior
+* Feature extraction options
 
 ---
 
-### 6. Move to the Docker env folder
+### 6 Move to Docker environment configuration
 
 ```bash
 cd ../Real_Estate_Data_Pipelines/docker/env
 ```
 
-### 7. Update Dagster, Postgres, and Grafana environment configurations
+---
+
+### 7 Create environment variable files
 
 ```bash
 cp .env.example.dagster .env.dagster
@@ -58,19 +147,51 @@ cp .env.example.grafana .env.grafana
 cp .env.example.postgres .env.postgres
 ```
 
-Edit the `.env` files:
+Edit each file as needed:
+
+#### Dagster
 
 ```bash
 nano .env.dagster
+```
+
+```env
+DAGSTER_HOME=/opt/dagster/dagster_home
+DAGSTER_POSTGRES_HOST=postgres
+DAGSTER_POSTGRES_DB=dagster
+DAGSTER_POSTGRES_USER=dagster
+DAGSTER_POSTGRES_PASSWORD=password
+```
+
+#### Grafana
+
+```bash
 nano .env.grafana
+```
+
+```env
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=admin_password
+GF_USERS_ALLOW_SIGN_UP=false
+GF_SERVER_HTTP_PORT=3000
+GF_INSTALL_PLUGINS=grafana-piechart-panel
+```
+
+#### PostgreSQL
+
+```bash
 nano .env.postgres
 ```
 
-Replace placeholders with your local credentials and configuration.
+```env
+POSTGRES_USER=dagster
+POSTGRES_PASSWORD=password
+POSTGRES_DB=database
+```
 
 ---
 
-### 8. Create `dagster.yaml`
+### 8 Create the Dagster instance configuration
 
 ```bash
 cd ../../
@@ -79,7 +200,7 @@ cd volumes/dagster
 nano dagster.yaml
 ```
 
-Populate `dagster.yaml` with the following template (replace placeholders with your actual paths and credentials):
+Example `dagster.yaml`:
 
 ```yaml
 instance_class: dagster.core.instance.DagsterInstance
@@ -88,17 +209,17 @@ local_artifact_storage:
   module: dagster._core.storage.root
   class: LocalArtifactStorage
   config:
-    base_dir: /path/to/dagster_home/storage
+    base_dir: /opt/dagster/dagster_home/storage
 
 run_storage:
   module: dagster._core.storage.runs
   class: SqlRunStorage
   config:
     postgres_db:
-      username: <DB_USERNAME>
-      password: <DB_PASSWORD>
-      hostname: <DB_HOSTNAME>
-      db_name: <DB_NAME>
+      username: dagster
+      password: password
+      hostname: postgres
+      db_name: dagster
       port: 5432
 
 event_log_storage:
@@ -106,10 +227,10 @@ event_log_storage:
   class: SqlEventLogStorage
   config:
     postgres_db:
-      username: <DB_USERNAME>
-      password: <DB_PASSWORD>
-      hostname: <DB_HOSTNAME>
-      db_name: <DB_NAME>
+      username: dagster
+      password: password
+      hostname: postgres
+      db_name: dagster
       port: 5432
 
 schedule_storage:
@@ -117,17 +238,17 @@ schedule_storage:
   class: SqlScheduleStorage
   config:
     postgres_db:
-      username: <DB_USERNAME>
-      password: <DB_PASSWORD>
-      hostname: <DB_HOSTNAME>
-      db_name: <DB_NAME>
+      username: dagster
+      password: password
+      hostname: postgres
+      db_name: dagster
       port: 5432
 
 compute_logs:
   module: dagster._core.storage.compute_logs
   class: LocalComputeLogManager
   config:
-    base_dir: /path/to/dagster_home/compute_logs
+    base_dir: /opt/dagster/dagster_home/compute_logs
 
 telemetry:
   enabled: false
@@ -135,11 +256,25 @@ telemetry:
 
 ---
 
-### 9. Build and run the Docker Compose stack
+### 9 Build and run the Docker Compose stack
 
 ```bash
 cd ../../docker
 docker-compose up -d --build
 ```
 
-This will build all services and start the pipeline in detached mode.
+---
+
+## Access Services
+
+* **Dagster UI:** [http://localhost:3000](http://localhost:3000)
+* **Grafana:** [http://localhost:3001](http://localhost:3001)
+* **PostgreSQL:** localhost:5432
+
+---
+
+## Notes
+
+* This pipeline **does not require LLMs** to run.
+* Embeddings are optional and used only for semantic search / VectorDB use cases.
+* The architecture is production-oriented and can be extended with Airflow, CI/CD, or cloud deployment.
