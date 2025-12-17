@@ -18,17 +18,17 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/opt/dagster:/opt/dagster/app:/opt/dagster/src
 
 # Create directories
-RUN mkdir -p /opt/dagster/app \
-             /opt/dagster/src \
-             /opt/dagster/raw_data \
-             /opt/dagster/logs \
+RUN mkdir -p /opt/dagster/Real_Estate_Data_Pipelines/app \
+             /opt/dagster/Real_Estate_Data_Pipelines/src \
+             /opt/dagster/Real_Estate_Data_Pipelines/raw_data \
+             /opt/dagster/Real_Estate_Data_Pipelines/logs \
              /opt/dagster/dagster_home
 
 # Set working directory
-WORKDIR /opt/dagster/app
+WORKDIR /opt/dagster/Real_Estate_Data_Pipelines/app
 
 # Copy requirements
-COPY requirements.txt /opt/dagster/app/requirements.txt
+COPY requirements.txt /opt/dagster/Real_Estate_Data_Pipelines/app/requirements.txt
 
 # Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \

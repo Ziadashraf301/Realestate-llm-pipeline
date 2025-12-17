@@ -15,8 +15,9 @@ pymilvus==2.3.4
 
 # Machine Learning & Embeddings
 torch==2.9.0
-transformers==4.36.2
-sentence-transformers==2.2.2
+transformers==4.57.0
+sentence-transformers==5.1.1
+huggingface_hub==0.35.3
 
 # Data Processing
 pandas==2.1.4
