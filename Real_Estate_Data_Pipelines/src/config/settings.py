@@ -27,12 +27,17 @@ class PipelineConfig(BaseModel):
     GENERATION_MODEL: str
     EMBEDDING_DIM: int = 384
     BATCH_SIZE: int = 100
-    
+        
+    AWS_ACCESS_KEY_ID: str = "",
+    AWS_SECRET_ACCESS_KEY: str =  "",
+    AWS_REGION: str =  ""
+
     # Paths
     PROJECT_ROOT: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3])
     CONFIG_DIR: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "Configs")
     SERVICE_ACCOUNT_PATH: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "Configs" / "big_query_service_account.json")
-    
+ 
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -51,7 +56,15 @@ def load_config() -> PipelineConfig:
     service_account_path = Path(__file__).resolve().parents[3] / "Configs" / "big_query_service_account.json"
     if service_account_path.exists():
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(service_account_path)
-    
+
+    # Set AWS environment variables if provided
+    if "AWS_ACCESS_KEY_ID" in config_data and config_data["AWS_ACCESS_KEY_ID"]:
+        os.environ['AWS_ACCESS_KEY_ID'] = config_data["AWS_ACCESS_KEY_ID"]
+    if "AWS_SECRET_ACCESS_KEY" in config_data and config_data["AWS_SECRET_ACCESS_KEY"]:
+        os.environ['AWS_SECRET_ACCESS_KEY'] = config_data["AWS_SECRET_ACCESS_KEY"]
+    if "AWS_REGION" in config_data and config_data["AWS_REGION"]:
+        os.environ['AWS_DEFAULT_REGION'] = config_data["AWS_REGION"]
+
     return PipelineConfig(**config_data)
 
 

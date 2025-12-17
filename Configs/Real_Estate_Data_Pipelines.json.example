@@ -21,5 +21,9 @@
     "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
     "sentence-transformers/distiluse-base-multilingual-cased-v2",
     "all-MiniLM-L6-v2"
-  ]
+  ],
+  "_comment_aws": "AWS S3 Credentials",
+  "AWS_ACCESS_KEY_ID": "",
+  "AWS_SECRET_ACCESS_KEY": "",
+  "AWS_REGION": "" 
 }

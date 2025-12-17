@@ -77,13 +77,14 @@ def save_to_json(filename, results, logger):
     logger.info(f"✅ Added {len(new_items)} new properties to {filename} (Total: {len(combined_data)})")
 
 
-def upload_to_s3(local_file_path, bucket_name, s3_key, logger):
+def upload_to_s3(local_file_path, s3_key, logger, bucket_name = "real-estate-301"):
     """Upload a file to an S3 bucket"""
     s3 = boto3.client("s3")
 
     try:
+        logger.info(f"📤 Upload to S3: s3://{bucket_name}/{s3_key}")
         s3.upload_file(local_file_path, bucket_name, s3_key)
-        logger.info(f"📤 Uploaded to S3: s3://{bucket_name}/{s3_key}")
+        logger.info(f"✅ Uploaded to S3: s3://{bucket_name}/{s3_key}")
     except Exception as e:
         logger.error(f"❌ S3 upload failed: {e}")
         raise

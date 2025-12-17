@@ -22,7 +22,7 @@ def scrape_city_listing(
         # Import modules
         from src.scrapers import AQARMAPRealEstateScraper
         from src.databases import Big_Query_Database
-        from src.helpers import save_to_json, scraper_report
+        from src.helpers import save_to_json, scraper_report, upload_to_s3
         from src.logger import LoggerFactory
         
         # Initialize logger
@@ -62,6 +62,10 @@ def scrape_city_listing(
         filename = f"{city}_{listing_type.replace('-', '_')}.json"
         output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / filename
         save_to_json(filename=str(output_path), results=results, logger=logger)
+        upload_to_s3(local_file_path=str(output_path), 
+                         s3_key=f"raw_data/{filename}", 
+                         logger=logger, 
+                         bucket_name = "real-estate-301")
         
         # At the end, return with metadata
         from dagster import Output, MetadataValue

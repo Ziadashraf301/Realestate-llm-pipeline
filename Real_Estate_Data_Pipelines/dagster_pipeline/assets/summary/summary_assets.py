@@ -29,7 +29,9 @@ def scraping_summary(context: AssetExecutionContext):
     Generate summary of all scraping operations.
     Loads results from Dagster's asset storage.
     """
-    
+
+    from src.helpers import upload_to_s3
+
     all_results = []
     scraping_asset_names = []
     
@@ -97,7 +99,7 @@ def scraping_summary(context: AssetExecutionContext):
     
     # Save summary to file
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "scraping_summary.json"
         
@@ -105,6 +107,10 @@ def scraping_summary(context: AssetExecutionContext):
             json.dump(summary, f, indent=2, ensure_ascii=False)
         
         context.log.info(f"✅ Summary saved to {output_path}")
+        upload_to_s3(local_file_path=str(output_path), 
+                         s3_key="summary/scraping_summary.json", 
+                         logger=context.log, 
+                         bucket_name = "real-estate-301")
     except Exception as e:
         context.log.error(f"⚠️ Could not save summary: {e}")
     
@@ -134,7 +140,8 @@ def mart_transformation_summary(context: AssetExecutionContext):
     Generate summary of all mart transformation operations.
     Loads results from Dagster's asset storage.
     """
-    
+    from src.helpers import upload_to_s3
+
     all_results = []
     mart_asset_names_list = []
     
@@ -194,7 +201,7 @@ def mart_transformation_summary(context: AssetExecutionContext):
     
     # Save summary
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "mart_summary.json"
         
@@ -202,6 +209,10 @@ def mart_transformation_summary(context: AssetExecutionContext):
             json.dump(summary, f, indent=2, ensure_ascii=False)
         
         context.log.info(f"✅ Mart summary saved to {output_path}")
+        upload_to_s3(local_file_path=str(output_path), 
+                         s3_key="summary/mart_summary.json", 
+                         logger=context.log, 
+                         bucket_name = "real-estate-301")
     except Exception as e:
         context.log.error(f"⚠️ Could not save mart summary: {e}")
     
@@ -229,6 +240,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
     """
     Generate complete pipeline summary including all stages.
     """
+    from src.helpers import upload_to_s3
     
     # Load summaries from storage
     from dagster import AssetKey
@@ -328,7 +340,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
     
     # Save complete summary
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "complete_pipeline_summary.json"
         
@@ -336,6 +348,10 @@ def complete_pipeline_summary(context: AssetExecutionContext):
             json.dump(summary, f, indent=2, ensure_ascii=False)
         
         context.log.info(f"✅ Complete pipeline summary saved to {output_path}")
+        upload_to_s3(local_file_path=str(output_path), 
+                         s3_key="summary/complete_pipeline_summary.json", 
+                         logger=context.log, 
+                         bucket_name = "real-estate-301")
     except Exception as e:
         context.log.error(f"⚠️ Could not save pipeline summary: {e}")
     

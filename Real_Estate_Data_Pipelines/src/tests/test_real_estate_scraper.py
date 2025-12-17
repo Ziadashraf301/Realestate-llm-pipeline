@@ -4,7 +4,7 @@ from src.scrapers import AQARMAPRealEstateScraper
 from src.config import config
 from src.databases import Big_Query_Database
 from src.logger import LoggerFactory
-from src.helpers import save_to_json, scraper_report
+from src.helpers import save_to_json, scraper_report, upload_to_s3
 
 
 def test_scrapers_operations():
@@ -79,6 +79,12 @@ def test_scrapers_operations():
 
             # Save JSON
             save_to_json(filename=str(OUTPUT_JSON), results=scraper.results, logger=logger)
+
+            upload_to_s3(local_file_path=str(OUTPUT_JSON), 
+                         s3_key="raw_data/alexandria_for_sale.json", 
+                         logger=logger, 
+                         bucket_name = "real-estate-301")
+            
             logger.info(f"✅ Saved JSON → {OUTPUT_JSON}")
 
             # Save to BigQuery
@@ -101,6 +107,10 @@ def test_scrapers_operations():
         logger.warning("⛔ Scraping manually interrupted!")
         if scraper.results:
             save_to_json(filename=str(OUTPUT_JSON), results=scraper.results, logger=logger)
+            upload_to_s3(local_file_path=str(OUTPUT_JSON), 
+                         s3_key="raw_data/alexandria_for_sale.json", 
+                         logger=logger, 
+                         bucket_name = "real-estate-301")
             logger.info("💾 Partial results saved before exit")
 
     except Exception as e:
@@ -110,6 +120,10 @@ def test_scrapers_operations():
             try:
                 fallback_path = OUTPUT_JSON.with_name("aqarmap_partial_fallback.json")
                 save_to_json(filename=str(fallback_path), results=scraper.results, logger=logger)
+                upload_to_s3(local_file_path=str(fallback_path), 
+                         s3_key="raw_data/aqarmap_partial_fallback.json", 
+                         logger=logger, 
+                         bucket_name = "real-estate-301")
                 logger.info(f"💾 Partial results saved → {fallback_path}")
             except:
                 logger.error("❌ Failed to save partial results")
