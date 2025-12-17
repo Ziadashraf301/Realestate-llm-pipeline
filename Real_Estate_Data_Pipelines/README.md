@@ -1,14 +1,15 @@
 # Real Estate Data Pipelines Setup
 
-This directory contains the **web scraping, ETL, orchestration, and Vector Database (VectorDB) pipelines** used to collect, process, store, and index real estate data for analytics and ML/LLM use cases.
+This repository contains the **web scraping, ETL, orchestration, and Vector Database (VectorDB) pipelines** used to collect, process, store, and index real estate data for analytics and ML/LLM use cases.
 
 The stack includes:
 
 * **Dagster** for orchestration
-* **PostgreSQL** for operational storage
+* **PostgreSQL** for Dagster metadata storage
 * **Google BigQuery** for analytics (raw + mart layers)
 * **Milvus** for vector storage (embeddings)
 * **Grafana** for monitoring
+* **Prometheus** for metrics collection
 * **Docker Compose** for local deployment
 
 ---
@@ -26,15 +27,15 @@ Make sure you have the following installed locally:
 
 ## Run the Pipeline
 
-### 1 Navigate to the Configs directory
+### 1. Navigate to the Configs directory
 
 ```bash
 cd Configs
-```
+````
 
 ---
 
-### 2 Create the Google BigQuery service account file
+### 2. Create the Google BigQuery service account file
 
 Copy the example file:
 
@@ -66,11 +67,11 @@ Fill in your **Google Cloud service account credentials**:
 }
 ```
 
-⚠️ **Never commit this file to Git**.
+⚠️ **Never commit this file to Git.**
 
 ---
 
-### 3 Add pipeline-level configurations
+### 3. Add pipeline-level configurations
 
 Edit the same config file to include pipeline parameters:
 
@@ -102,13 +103,18 @@ Edit the same config file to include pipeline parameters:
     "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
     "sentence-transformers/distiluse-base-multilingual-cased-v2",
     "all-MiniLM-L6-v2"
-  ]
+  ],
+
+  "_comment_aws": "AWS S3 Credentials",
+  "AWS_ACCESS_KEY_ID": "",
+  "AWS_SECRET_ACCESS_KEY": "",
+  "AWS_REGION": "" 
 }
 ```
 
 ---
 
-### 4 Create the main pipeline config file
+### 4. Create the main pipeline config file
 
 ```bash
 cp Real_Estate_Data_Pipelines.json.example Real_Estate_Data_Pipelines.json
@@ -116,7 +122,7 @@ cp Real_Estate_Data_Pipelines.json.example Real_Estate_Data_Pipelines.json
 
 ---
 
-### 5 Edit pipeline-specific settings
+### 5. Edit pipeline-specific settings
 
 ```bash
 nano Real_Estate_Data_Pipelines.json
@@ -131,7 +137,7 @@ Use this file to control:
 
 ---
 
-### 6 Move to Docker environment configuration
+### 6. Move to Docker environment configuration
 
 ```bash
 cd ../Real_Estate_Data_Pipelines/docker/env
@@ -139,12 +145,13 @@ cd ../Real_Estate_Data_Pipelines/docker/env
 
 ---
 
-### 7 Create environment variable files
+### 7. Create environment variable files
 
 ```bash
 cp .env.example.dagster .env.dagster
 cp .env.example.grafana .env.grafana
 cp .env.example.postgres .env.postgres
+cp .env.example.dagster-postgres-exporter .env.dagster-postgres-exporter
 ```
 
 Edit each file as needed:
@@ -189,9 +196,21 @@ POSTGRES_PASSWORD=password
 POSTGRES_DB=database
 ```
 
+#### PostgreSQL Exporter
+
+```bash
+nano .env.dagster-postgres-exporter
+```
+
+```env
+DATA_SOURCE_URI=dagster-postgres:5432/dagster?sslmode=disable
+DATA_SOURCE_USER=dagster
+DATA_SOURCE_PASS=dagster
+```
+
 ---
 
-### 8 Create the Dagster instance configuration
+### 8. Create the Dagster instance configuration
 
 ```bash
 cd ../../
@@ -256,7 +275,7 @@ telemetry:
 
 ---
 
-### 9 Build and run the Docker Compose stack
+### 9. Build and run the Docker Compose stack
 
 ```bash
 cd ../../docker
@@ -268,13 +287,22 @@ docker-compose up -d --build
 ## Access Services
 
 * **Dagster UI:** [http://localhost:3000](http://localhost:3000)
-* **Grafana:** [http://localhost:3001](http://localhost:3001)
-* **PostgreSQL:** localhost:5432
+* **Grafana:** [http://localhost:7000](http://localhost:7000)
 
 ---
 
-## Notes
+### Grafana Dashboards
 
-* This pipeline **does not require LLMs** to run.
-* Embeddings are optional and used only for semantic search / VectorDB use cases.
-* The architecture is production-oriented and can be extended with Airflow, CI/CD, or cloud deployment.
+You can find preconfigured dashboards in:
+
+```bash
+cd ../../Real_Estate_BI/dashboards
+```
+
+Available dashboards:
+
+* `milvus-dashboard.json`
+* `node-exporter-dashboard.json`
+* `postgres-dashboard.json`
+* `prometheus-dashboard.json`
+

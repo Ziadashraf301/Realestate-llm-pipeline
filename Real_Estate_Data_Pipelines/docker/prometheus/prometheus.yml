@@ -30,11 +30,12 @@ scrape_configs:
           type: 'vector-database'
     metrics_path: '/metrics'
 
-  # Dagster metrics
-  - job_name: 'dagster'
+  # PostgreSQL (Dagster) - Orchestration Database
+  - job_name: 'postgres-dagster'
     static_configs:
-      - targets: ['dagster:3000']
+      - targets: ['dagster-postgres-exporter:9187']
         labels:
-          service: 'dagster'
-          type: 'orchestrator'
-    metrics_path: '/metrics'
+          service: 'postgres-dagster'
+          type: 'database'
+          component: 'orchestration'
+    scrape_interval: 30s
