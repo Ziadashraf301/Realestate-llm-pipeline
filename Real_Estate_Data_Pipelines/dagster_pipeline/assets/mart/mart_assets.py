@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
-from ...resources.config_resources import MartResource
+from resources.config_resources import MartResource
 from .mart_config import MART_CONFIG
 
 

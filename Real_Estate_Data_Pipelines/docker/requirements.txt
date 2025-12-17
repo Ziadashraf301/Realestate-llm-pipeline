@@ -14,7 +14,7 @@ google-auth-httplib2==0.2.0
 pymilvus==2.3.4
 
 # Machine Learning & Embeddings
-torch==2.1.2
+torch==2.9.0
 transformers==4.36.2
 sentence-transformers==2.2.2
 
@@ -30,7 +30,6 @@ dagster-docker==0.21.13
 
 # Validation & Config
 pydantic==2.5.3
-pyyaml==6.0
 
 # Progress & Utilities
 tqdm==4.66.1
