@@ -60,7 +60,8 @@ def scrape_city_listing(
         
         # Save to JSON
         filename = f"{city}_{listing_type.replace('-', '_')}.json"
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / filename
+        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping" / filename
+        output_path.mkdir(parents=True, exist_ok=True)
         save_to_json(filename=str(output_path), results=results, logger=logger)
         upload_to_s3(local_file_path=str(output_path), 
                          s3_key=f"raw_data/{filename}", 

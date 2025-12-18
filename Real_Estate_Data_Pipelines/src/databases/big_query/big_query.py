@@ -282,11 +282,10 @@ class Big_Query_Database():
         """Creates partitioned mart table with comprehensive data cleaning and enrichment."""
         self.logger.info("🚀 Starting mart table creation...")
         self.create_dataset_if_not_exists(project_id = self.project_id, dataset_id = self.mart_dataset_id)
-
+        
         query = f"""
         CREATE OR REPLACE TABLE `{self.mart_table_ref}`
-        PARTITION BY scraped_date
-        CLUSTER BY location, property_type, listing_type
+        CLUSTER BY location, scraped_date, property_type, listing_type
         AS
         WITH cleaned_text AS (
             SELECT
