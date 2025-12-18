@@ -5,6 +5,7 @@ from dagster import asset, OpExecutionContext, RetryPolicy
 from src.config import config
 from resources.config_resources import ScraperResource
 from .scraping_config import SCRAPING_CONFIG
+from pathlib import Path
 
 
 def scrape_city_listing(
@@ -60,11 +61,11 @@ def scrape_city_listing(
         
         # Save to JSON
         filename = f"{city}_{listing_type.replace('-', '_')}.json"
-        output_path = config.PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping"
-        file_path =  output_path / filename
+        output_path = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping"
         output_path.mkdir(parents=True, exist_ok=True)
-        save_to_json(filename=str(output_path), results=results, logger=logger)
-        upload_to_s3(local_file_path=str(output_path), 
+        file_path =  output_path / filename
+        save_to_json(filename=str(file_path), results=results, logger=logger)
+        upload_to_s3(local_file_path=str(file_path), 
                          s3_key=f"raw_data/{filename}", 
                          logger=logger, 
                          bucket_name = "real-estate-301")
