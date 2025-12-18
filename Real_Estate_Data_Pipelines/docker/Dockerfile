@@ -41,5 +41,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:3000/server_info || exit 1
 
+
+ENV PYTHONPATH=/opt/dagster/Real_Estate_Data_Pipelines:/opt/dagster/Real_Estate_Data_Pipelines/app:/opt/dagster/Real_Estate_Data_Pipelines/src
+
 # Default command
 CMD ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/opt/dagster/Real_Estate_Data_Pipelines/app/workspace.yaml"]

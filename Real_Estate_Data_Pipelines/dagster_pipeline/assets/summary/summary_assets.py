@@ -99,7 +99,7 @@ def scraping_summary(context: AssetExecutionContext):
     
     # Save summary to file
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "scraping_summary.json"
         
@@ -201,7 +201,7 @@ def mart_transformation_summary(context: AssetExecutionContext):
     
     # Save summary
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "mart_summary.json"
         
@@ -340,7 +340,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
     
     # Save complete summary
     try:
-        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "summary"
+        output_dir = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "summary"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "complete_pipeline_summary.json"
         
