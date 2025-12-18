@@ -285,8 +285,7 @@ class Big_Query_Database():
 
         query = f"""
         CREATE OR REPLACE TABLE `{self.mart_table_ref}`
-        PARTITION BY scraped_date
-        CLUSTER BY location, property_type, listing_type
+        CLUSTER BY location, scraped_date, property_type, listing_type
         AS
         WITH cleaned_text AS (
             SELECT
