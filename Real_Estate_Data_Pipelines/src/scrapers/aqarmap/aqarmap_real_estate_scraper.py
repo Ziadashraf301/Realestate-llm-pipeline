@@ -290,6 +290,184 @@ class AQARMAPRealEstateScraper:
         
         return specs
     
+    def _scrape_property_detail_page(self, url, city='الإسكندرية', listing_type='عقارات-للبيع'):
+        """Scrape individual property detail page for complete information"""
+        try:
+            response = self.session.get(url, timeout=20)
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Generate unique ID from URL
+            property_id = hashlib.md5(url.encode()).hexdigest()[:16]
+
+            # Initialize variables
+            title = ""
+            description = ""
+            price_egp = None
+            price_text = None
+            price_currency = None
+            property_type = "unknown"
+            bedrooms = None
+            bathrooms = None
+            area_sqm = None
+            floor_number = None
+            address = ""
+            latitude = None
+            longitude = None
+            last_updated = None
+            images = []
+            agent_name = None
+            agent_phone = None
+            agent_whatsapp = None
+            agent_type = None
+
+            # Extract data from JSON-LD schema
+            script_tags = soup.find_all("script", type="application/ld+json")
+            for script_tag in script_tags:
+                try:
+                    data = json.loads(script_tag.string)
+                    
+                    # Navigate through the nested structure
+                    if isinstance(data, dict) and '@graph' in data:
+                        for item in data['@graph']:
+                            if item.get('@type') == 'RealEstateListing':
+                                # Basic listing info
+                                title = item.get('name', '').split('|')[0].strip()
+                                last_updated = item.get('datePosted')
+                                
+                                # Main entity contains property details
+                                main_entity = item.get('mainEntity', {})
+                                description = main_entity.get('description', '')
+
+                                # Price information
+                                price_egp = main_entity.get('price')
+                                price_currency = main_entity.get('priceCurrency', 'EGP')
+                                price_text = f"{price_egp} {price_currency}" if price_egp else None
+                                
+                                # Property type
+                                property_type = main_entity.get('accommodationCategory', 'unknown')
+                                
+                                # Property details
+                                bedrooms = main_entity.get('numberOfBedrooms')
+                                bathrooms = main_entity.get('numberOfBathroomsTotal')
+
+                                floor_number = self._extract_floor_number(description)
+
+                                # Area
+                                floor_size = main_entity.get('floorSize', {})
+                                area_sqm = floor_size.get('value')
+                                if area_sqm:
+                                    try:
+                                        area_sqm = float(area_sqm)
+                                    except:
+                                        area_sqm = None
+                                
+                                # Location details
+                                geo = main_entity.get('geo', {})
+                                latitude = geo.get('latitude')
+                                longitude = geo.get('longitude')
+                                
+                                address_data = main_entity.get('address', {})
+                                locality = address_data.get('addressLocality', '')
+                                region = address_data.get('addressRegion', '')
+                                country = address_data.get('addressCountry', {}).get('name', '')
+                                address = f"{locality}, {region}, {country}".strip(', ')
+                                
+                                # Images
+                                images = main_entity.get('image', [])
+                                
+                                # Agent/Seller information
+                                seller = main_entity.get('seller', {})
+                                agent_name = seller.get('name')
+                                agent_phone = seller.get('telephone')
+                                agent_whatsapp = agent_phone
+                                
+                                # Determine agent type
+                                agency = seller.get('memberOf', {})
+                                agent_type = 'agency' if agency.get('name') else 'individual'
+                                
+                                break
+                except:
+                    continue
+
+            # Fallback: Extract title from h1 if not found in JSON-LD
+            if not title:
+                title_elem = soup.select_one('h1')
+                if title_elem:
+                    title = title_elem.get_text(strip=True)
+
+            # Prepare specs_data dictionary
+            specs_data = {
+                'property_type': property_type,
+                'bedrooms': bedrooms,
+                'bathrooms': bathrooms,
+                'area_sqm': area_sqm,
+                'floor_number': floor_number
+            }
+            
+            # Prepare metadata dictionary
+            metadata = {
+                'address': address,
+                'latitude': latitude,
+                'longitude': longitude,
+                'last_updated': last_updated
+            }
+            
+            # Prepare agent_info dictionary
+            agent_info = {
+                'name': agent_name,
+                'phone': agent_phone,
+                'whatsAppNumber': agent_whatsapp,
+                'type': agent_type
+            }
+
+            # Compile all data
+            property_data = {
+                'property_id': f"bayut_{property_id}",
+                'source': 'bayut',
+                'url': url,
+                'title': title,
+                'description': description,
+                'price_egp': price_egp,
+                'price_text': price_text,
+                'currency': price_currency,
+                'property_type': specs_data.get('property_type', 'unknown'),
+                'listing_type': 'تمليك' if 'للبيع' in listing_type else 'ايجار',
+                
+                # Property details
+                'bedrooms': specs_data.get('bedrooms'),
+                'bathrooms': specs_data.get('bathrooms'),
+                'area_sqm': specs_data.get('area_sqm'),
+                'floor_number': specs_data.get('floor_number'),
+                
+                # Location details
+                'location': city,
+                'address': metadata['address'],
+                'latitude': metadata['latitude'],
+                'longitude': metadata['longitude'],
+                'last_updated': metadata['last_updated'],
+                
+                # Images
+                'images': images,
+                
+                # Agent information
+                'agent_name': agent_info.get('name'),
+                'agent_phone': agent_info.get('phone'),
+                'agent_whatsAppNumber': agent_info.get('whatsAppNumber'),
+                'agent_type': agent_info.get('type'),
+                
+                # Timestamp
+                'scraped_at': datetime.now().isoformat()
+            }
+            
+            return property_data
+            
+        except Exception as e:
+            self.logger.error(f"Failed to scrape {url}: {e}")
+            return None
+    
+
     def _extract_images(self, soup):
         """Extract property images"""
         images = []
