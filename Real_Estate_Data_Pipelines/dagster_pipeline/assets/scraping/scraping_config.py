@@ -5,13 +5,15 @@ Configuration for scraping assets
 # Generate from lists
 CITIES = ["alexandria", "cairo"]
 LISTING_TYPES = ["for-sale", "for-rent"]
+PROVIDERS = ["aqarmap", "bayut"]
 
 def generate_scraping_config():
     """Generate all combinations of cities and listing types"""
     return [
-        {"city": city, "listing_type": listing_type}
+        {"city": city, "listing_type": listing_type, "provider": provider}
         for city in CITIES
         for listing_type in LISTING_TYPES
+        for provider in PROVIDERS
     ]
 
 SCRAPING_CONFIG = generate_scraping_config()

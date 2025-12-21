@@ -11,6 +11,7 @@ from pathlib import Path
 def scrape_city_listing(
     context: OpExecutionContext,
     scraper_resource: ScraperResource,
+    provider: str,
     city: str,
     listing_type: str
 ) -> Dict[str, Any]:
@@ -18,10 +19,9 @@ def scrape_city_listing(
     Generic scraping function for any city and listing type
     """
     try:
-        context.log.info(f"🏠 Starting {city.title()} {listing_type} scraping...")
+        context.log.info(f"🏠 Starting {provider} {city.title()} {listing_type} scraping...")
         
         # Import modules
-        from src.scrapers import AQARMAPRealEstateScraper
         from src.databases import Big_Query_Database
         from src.helpers import save_to_json, scraper_report, upload_to_s3
         from src.logger import LoggerFactory
@@ -37,27 +37,28 @@ def scrape_city_listing(
             log_dir=scraper_resource.log_dir
         )
         db.connect()
+
+        # Scraper selection based on provider
+        provider_class = get_provider_object(provider)
         
         # Initialize scraper
-        scraper = AQARMAPRealEstateScraper(
+        scraper = provider_class(
             log_dir=scraper_resource.log_dir,
-            db=db
-        )
-        
+            db=db)
+            
         # Scrape data
-        results = scraper.scrape_aqarmap(
+        results = scraper.scrape(
             city=city,
             listing_type=listing_type,
-            max_pages=scraper_resource.max_pages
-        )
-        
+            max_pages=scraper_resource.max_pages)
+    
         # Generate report
         scraper_report(results=results, logger=logger)
-        context.log.info(f"✅ Scraped {len(results)} properties from {city.title()} ({listing_type})")
+        context.log.info(f"✅ Scraped {len(results)} properties from {provider} {city.title()} ({listing_type})")
         
         # Save to BigQuery
         inserted_count = db.save_to_database(results)
-        context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery")
+        context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery from {provider}")
         
         # Save to JSON
         filename = f"{city}_{listing_type.replace('-', '_')}.json"
@@ -92,7 +93,7 @@ def scrape_city_listing(
         )
         
     except Exception as e:
-        context.log.error(f"❌ Error scraping {city.title()} {listing_type}: {str(e)}")
+        context.log.error(f"❌ Error scraping {provider} {city.title()} {listing_type}: {str(e)}")
         
         from dagster import Output, MetadataValue
         
@@ -115,27 +116,28 @@ def scrape_city_listing(
         )
 
 
-def create_scraping_asset(city: str, listing_type: str):
+def create_scraping_asset(provider: str, city: str, listing_type: str):
     """
     Factory function to dynamically create scraping assets
     
     Args:
+        provider: Scraper provider name
         city: City name
         listing_type: Listing type
     
     Returns:
         Dagster asset function
     """
-    asset_name = f"scrape_{city}_{listing_type.replace('-', '_')}"
+    asset_name = f"scrape_{provider}_{city}_{listing_type.replace('-', '_')}"
     
     @asset(
         name=asset_name,
-        description=f"Scrape {city.title()} properties {listing_type}",
+        description=f"Scrape {provider.title()} {city.title()} properties {listing_type}",
         group_name="real_estate_scraping",
         retry_policy=RetryPolicy(max_retries=2, delay=300)
     )
     def scraping_asset(context: OpExecutionContext, scraper_resource: ScraperResource):
-        return scrape_city_listing(context, scraper_resource, city, listing_type)
+        return scrape_city_listing(context, scraper_resource, provider, city, listing_type)
     
     return scraping_asset
 
@@ -151,7 +153,8 @@ def get_all_scraping_assets() -> List:
     for scraping_config in SCRAPING_CONFIG:
         city = scraping_config["city"]
         listing_type = scraping_config["listing_type"]
-        asset_func = create_scraping_asset(city, listing_type)
+        provider = scraping_config["provider"]
+        asset_func = create_scraping_asset(provider, city, listing_type)
         assets.append(asset_func)
     
     return assets
@@ -160,6 +163,19 @@ def get_all_scraping_assets() -> List:
 def get_scraping_asset_names():
     """Get list of all scraping asset names"""
     return [str(asset.key.path[-1]) for asset in scraping_assets]
+
+
+def get_provider_object(provider_name: str):    
+    """Get mapping of providers to their objects"""
+    from src.scrapers import AQARMAPRealEstateScraper
+    from src.scrapers import BAYUTRealEstateScraper
+
+    provider_map = {
+        "aqarmap": AQARMAPRealEstateScraper,
+        "bayut": BAYUTRealEstateScraper
+    }
+    
+    return provider_map.get(provider_name.lower())
 
 # Generate all assets dynamically
 scraping_assets = get_all_scraping_assets()

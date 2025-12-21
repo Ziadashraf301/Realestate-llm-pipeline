@@ -7,8 +7,8 @@ class PropertyVectorsModel(BaseModel):
     # Required identity fields
     property_id: str = Field(
         ..., 
-        min_length=24, 
-        max_length=24,
+        min_length=18, 
+        max_length=28,
         pattern="^[a-z]+_[a-f0-9]{16}$",
         description="Format: source_hash (e.g., aqarmap_48da83f859986cdb)"
     )

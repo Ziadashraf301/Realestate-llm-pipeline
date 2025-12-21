@@ -12,7 +12,7 @@ def test_scrapers_operations():
 
     # Path Configuration
     PROJECT_ROOT = Path(__file__).resolve().parents[3]
-    OUTPUT_JSON = PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "alexandria_for_sale.json"
+    OUTPUT_JSON = PROJECT_ROOT / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping" / "alexandria_for_sale.json"
 
     # Load Config
     cfg = config
@@ -65,7 +65,7 @@ def test_scrapers_operations():
     logger.info("🚀 Starting BAYUT scraping process...\n")
 
     try:
-        scraper.scrape_bayut(
+        scraper.scrape(
             city=CITY,
             listing_type=LISTING_TYPE,
             max_pages=MAX_PAGES

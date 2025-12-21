@@ -41,9 +41,13 @@ class BAYUTRealEstateScraper:
         self.existing_urls = self.db_client.load_existing_urls_from_database()  
 
 
-    def scrape_bayut(self, city='الإسكندرية', listing_type='عقارات-للبيع', max_pages=2):
+    def scrape(self, city='الإسكندرية', listing_type='عقارات-للبيع', max_pages=2):
         """Main scraping method"""
         self.logger.info(f"🏠 Scraping BAYUT: {city} - {listing_type}")
+
+        self.logger.info(f"🔍 Mapped Query Params - City: {city}, Listing Type: {listing_type}")
+        city, listing_type = self._map_query_params(city, listing_type)
+        self.logger.info(f"🔍 Using Query Params - City: {city}, Listing Type: {listing_type}")
         
         new_properties_count = 0
         skipped_properties_count = 0
@@ -54,7 +58,7 @@ class BAYUTRealEstateScraper:
                 if page == 1:
                     url = f"{self.base_url}/{listing_type}/{city}/"
                 else:
-                    url = f"{self.base_url}/{listing_type}/{city}/صفحة-{page}"
+                    url = f"{self.base_url}/صفحة-{page}/{listing_type}/{city}"
                 
                 self.logger.info(f"📄 Page {page}: {url}")
                 time.sleep(3)
@@ -142,7 +146,7 @@ class BAYUTRealEstateScraper:
             description = ""
             price_egp = None
             price_text = None
-            price_currency = None
+            price_currency = "EGP"
             property_type = "unknown"
             bedrooms = None
             bathrooms = None
@@ -175,10 +179,31 @@ class BAYUTRealEstateScraper:
                                 # Main entity contains property details
                                 main_entity = item.get('mainEntity', {})
                                 description = main_entity.get('description', '')
-
-                                # Price information
-                                price_egp = main_entity.get('price')
-                                price_currency = main_entity.get('priceCurrency', 'EGP')
+                                
+                                # Handle different property types (sale vs rental)
+                                # Check if it's a rental (RentAction) or sale
+                                entity_types = main_entity.get('@type', [])
+                                if isinstance(entity_types, list):
+                                    is_rental = 'RentAction' in entity_types
+                                else:
+                                    is_rental = 'RentAction' in str(entity_types)
+                                
+                                # Extract price information based on property type
+                                if is_rental:
+                                    # Rental properties have priceSpecification
+                                    price_spec = main_entity.get('priceSpecification', {})
+                                    price_egp = price_spec.get('price')
+                                    price_currency = price_spec.get('priceCurrency', 'EGP')
+                                    # Check unit text to ensure it's monthly
+                                    unit_text = price_spec.get('unitText', '').lower()
+                                    if 'monthly' not in unit_text and price_egp:
+                                        # Could be annual or other, handle accordingly
+                                        pass
+                                else:
+                                    # Sale properties have direct price
+                                    price_egp = main_entity.get('price')
+                                    price_currency = main_entity.get('priceCurrency', 'EGP')
+                                
                                 price_text = f"{price_egp} {price_currency}" if price_egp else None
                                 
                                 # Property type
@@ -189,14 +214,19 @@ class BAYUTRealEstateScraper:
                                 bathrooms = main_entity.get('numberOfBathroomsTotal')
                                 
                                 # Area
-                                floor_number = self._extract_floor_number(description)
                                 floor_size = main_entity.get('floorSize', {})
-                                area_sqm = floor_size.get('value')
-                                if area_sqm:
+                                area_value = floor_size.get('value')
+                                if area_value:
                                     try:
-                                        area_sqm = float(area_sqm)
+                                        # Remove any non-numeric characters except decimal point
+                                        import re
+                                        area_clean = re.sub(r'[^\d.]', '', str(area_value))
+                                        area_sqm = float(area_clean)
                                     except:
                                         area_sqm = None
+                                
+                                # Extract floor number from description
+                                floor_number = self._extract_floor_number(description)
                                 
                                 # Location details
                                 geo = main_entity.get('geo', {})
@@ -211,19 +241,39 @@ class BAYUTRealEstateScraper:
                                 
                                 # Images
                                 images = main_entity.get('image', [])
+                                if isinstance(images, str):
+                                    images = [images]
                                 
-                                # Agent/Seller information
-                                seller = main_entity.get('seller', {})
-                                agent_name = seller.get('name')
-                                agent_phone = seller.get('telephone')
-                                agent_whatsapp = agent_phone  # Bayut uses same number
+                                # Agent information - different for rentals vs sales
+                                if is_rental:
+                                    # Rental properties use realEstateAgent
+                                    agent_data = main_entity.get('realEstateAgent', {})
+                                    agent_name = agent_data.get('name')
+                                    agent_phone = agent_data.get('telephone')
+                                    
+                                    # Check for memberOf to determine agency
+                                    agency = agent_data.get('memberOf', {})
+                                    agent_type = 'agency' if agency.get('name') else 'individual'
+                                else:
+                                    # Sale properties use seller
+                                    seller = main_entity.get('seller', {})
+                                    agent_name = seller.get('name')
+                                    agent_phone = seller.get('telephone')
+                                    
+                                    # Check for memberOf to determine agency
+                                    agency = seller.get('memberOf', {})
+                                    agent_type = 'agency' if agency.get('name') else 'individual'
                                 
-                                # Determine agent type
-                                agency = seller.get('memberOf', {})
-                                agent_type = 'agency' if agency.get('name') else 'individual'
+                                # Extract WhatsApp from description if not found
+                                if not agent_phone and description:
+                                    import re
+                                    whatsapp_match = re.search(r'https://wa\.me/(\d+)', description)
+                                    if whatsapp_match:
+                                        agent_whatsapp = f"+{whatsapp_match.group(1)}"
                                 
                                 break
-                except:
+                except Exception as e:
+                    self.logger.debug(f"Error parsing JSON-LD: {e}")
                     continue
 
             # Fallback: Extract title from h1 if not found in JSON-LD
@@ -231,6 +281,33 @@ class BAYUTRealEstateScraper:
                 title_elem = soup.select_one('h1')
                 if title_elem:
                     title = title_elem.get_text(strip=True)
+            
+            # Fallback: Extract price from description if not found in JSON-LD
+            if not price_egp and description:
+                import re
+                # Look for price patterns in description
+                price_patterns = [
+                    r'بسعر\s*:\s*([\d,]+)\s*ج',
+                    r'بسعر\s*:\s*([\d,]+)',
+                    r'سعر\s*:\s*([\d,]+)\s*ج',
+                    r'مطلوب\s*([\d,]+)\s*ج',
+                    r'(\d{4,})[,\s]*جنيهاً?'
+                ]
+                
+                for pattern in price_patterns:
+                    match = re.search(pattern, description)
+                    if match:
+                        price_str = match.group(1).replace(',', '')
+                        try:
+                            price_egp = int(price_str)
+                            price_text = f"{price_egp} EGP"
+                            break
+                        except:
+                            continue
+
+            # Fallback: Extract address from breadcrumb if needed
+            if not address and city:
+                address = f"{city}, مَصر"
 
             # Prepare specs_data dictionary
             specs_data = {
@@ -253,10 +330,13 @@ class BAYUTRealEstateScraper:
             agent_info = {
                 'name': agent_name,
                 'phone': agent_phone,
-                'whatsAppNumber': agent_whatsapp,
-                'type': agent_type
+                'whatsAppNumber': agent_whatsapp or agent_phone,  # Use phone if whatsapp not found
+                'type': agent_type or 'individual'
             }
 
+            # Determine listing type
+            is_rental_listing = any(word in listing_type.lower() for word in ['ايجار', 'للايجار', 'إيجار'])
+            
             # Compile all data
             property_data = {
                 'property_id': f"bayut_{property_id}",
@@ -268,7 +348,7 @@ class BAYUTRealEstateScraper:
                 'price_text': price_text,
                 'currency': price_currency,
                 'property_type': self._determine_property_type(specs_data.get('property_type', 'unknown')),
-                'listing_type': 'تمليك' if 'للبيع' in listing_type else 'ايجار',
+                'listing_type': 'ايجار' if is_rental_listing else 'تمليك',
                 
                 # Property details
                 'bedrooms': specs_data.get('bedrooms'),
@@ -399,3 +479,23 @@ class BAYUTRealEstateScraper:
                     return ptype
             
         return 'شقة'
+    
+
+    def _map_query_params(self, city: str, listing_type: str):
+        """Map city and listing type to BAYUT query parameters"""
+        city_mapping = {
+            'alexandria': 'الإسكندرية',
+            'cairo': 'القاهرة',
+            # Add more city mappings as needed
+        }
+        
+        listing_type_mapping = {
+            'for-sale': 'عقارات-للبيع',
+            'for-rent': 'عقارات-للايجار',
+            # Add more listing type mappings as needed
+        }
+        
+        mapped_city = city_mapping.get(city, city)
+        mapped_listing_type = listing_type_mapping.get(listing_type, listing_type)
+        
+        return mapped_city, mapped_listing_type
