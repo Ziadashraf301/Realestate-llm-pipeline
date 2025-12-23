@@ -299,14 +299,16 @@ class Big_Query_Database():
                         REGEXP_REPLACE(
                             REGEXP_REPLACE(
                                 REGEXP_REPLACE(
-                                    REGEXP_REPLACE(LOWER(COALESCE(title, '')), r'[إأآ]', 'ا'),
-                                    r'[ىي]', 'ي'
+                                    REGEXP_REPLACE(
+                                        REGEXP_REPLACE(COALESCE(title, ''), r'[إأآ]', 'ا'),
+                                        r'[ىي]', 'ي'
+                                    ),
+                                    r'[ؤئ]', 'ء'
                                 ),
-                                r'[ؤئ]', 'ء'
+                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
                             ),
-                            r'[▪•●◼◾▫◽،/!؟💰:()+%.,-]', ' '
-                        ),
-                        r'\\s+', ' '
+                            r'\s+', ' '
+                        )
                     )
                 ) AS title_cleaned,
                 
@@ -315,24 +317,34 @@ class Big_Query_Database():
                         REGEXP_REPLACE(
                             REGEXP_REPLACE(
                                 REGEXP_REPLACE(
-                                    REGEXP_REPLACE(LOWER(COALESCE(description, '')), r'[إأآ]', 'ا'),
-                                    r'[ىي]', 'ي'
+                                    REGEXP_REPLACE(
+                                        REGEXP_REPLACE(COALESCE(description, ''), r'[إأآ]', 'ا'),
+                                        r'[ىي]', 'ي'
+                                    ),
+                                    r'[ؤئ]', 'ء'
                                 ),
-                                r'[ؤئ]', 'ء'
+                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
                             ),
-                            r'[▪•●◼◾▫◽،/!؟💰:()+%.,-]', ' '
-                        ),
-                        r'\\s+', ' '
+                            r'\s+', ' '
+                        )
                     )
                 ) AS description_cleaned,
                 
                 TRIM(
                     REGEXP_REPLACE(
                         REGEXP_REPLACE(
-                            LOWER(COALESCE(address, '')),
-                            r'[▪•●◼◾▫◽،/!؟💰:()+%.,-]', ' '
-                        ),
-                        r'\\s+', ' '
+                            REGEXP_REPLACE(
+                                REGEXP_REPLACE(
+                                    REGEXP_REPLACE(
+                                        REGEXP_REPLACE(COALESCE(address, ''), r'[إأآ]', 'ا'),
+                                        r'[ىي]', 'ي'
+                                    ),
+                                    r'[ؤئ]', 'ء'
+                                ),
+                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
+                            ),
+                            r'\s+', ' '
+                        )
                     )
                 ) AS address_cleaned,
                 
@@ -346,7 +358,7 @@ class Big_Query_Database():
                 LOWER(TRIM(COALESCE(listing_type, 'unknown'))) AS listing_type,
                 
                 CASE 
-                    WHEN SAFE_CAST(bedrooms AS INT64) BETWEEN 0 AND 20 
+                    WHEN SAFE_CAST(bedrooms AS INT64) BETWEEN 0 AND 25 
                     THEN SAFE_CAST(bedrooms AS INT64) 
                     ELSE 0 
                 END AS bedrooms,
@@ -364,7 +376,7 @@ class Big_Query_Database():
                 END AS area_sqm,
                 
                 CASE 
-                    WHEN SAFE_CAST(floor_number AS INT64) BETWEEN -2 AND 100 
+                    WHEN SAFE_CAST(floor_number AS INT64) BETWEEN 0 AND 100 
                     THEN SAFE_CAST(floor_number AS INT64) 
                     ELSE 0 
                 END AS floor_number,

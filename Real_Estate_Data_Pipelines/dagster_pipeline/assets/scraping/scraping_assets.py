@@ -61,13 +61,14 @@ def scrape_city_listing(
         context.log.info(f"📤 Inserted {inserted_count} new properties to BigQuery from {provider}")
         
         # Save to JSON
-        filename = f"{city}_{listing_type.replace('-', '_')}.json"
-        output_path = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping"
+        filename = f"{provider}_{city}_{listing_type.replace('-', '_')}.json"
+        output_path = Path(config.PROJECT_ROOT) / "Real_Estate_Data_Pipelines" / "raw_data" / "scraping" / provider / city
         output_path.mkdir(parents=True, exist_ok=True)
         file_path =  output_path / filename
+        
         save_to_json(filename=str(file_path), results=results, logger=logger)
         upload_to_s3(local_file_path=str(file_path), 
-                         s3_key=f"raw_data/{filename}", 
+                         s3_key=f"raw_data/scraping/{provider}/{city}/{filename}", 
                          logger=logger, 
                          bucket_name = "real-estate-301")
         
