@@ -1,93 +1,62 @@
 """
 Flask Web UI for Real Estate Vector Search + Gemini Summarization (Arabic fields)
 """
-
+from markdown import markdown
+from Real_Estate_Data_Pipelines.src.config import config, PipelineConfig
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 from flask import Flask, render_template, request, jsonify
 from pymilvus import connections, Collection
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
-from markdown import markdown
 import os
-from pathlib import Path
 
+# Initialize Logger
+logger = LoggerFactory.create_logger(log_dir=config.LOG_DIR)
 app = Flask(__name__)
 
-# =========================
-# Configuration
-# =========================
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CONFIG_DIR = PROJECT_ROOT / 'config'
-
-# Load Gemini API key from config or environment
-try:
-    import json
-    config_file = CONFIG_DIR / 'api_config.json'
-    if config_file.exists():
-        with open(config_file, 'r') as f:
-            config = json.load(f)
-            GEMINI_API_KEY = config.get('GEMINI_API_KEY')
-    else:
-        GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-except Exception as e:
-    print(f"⚠️ Warning: Could not load API config: {e}")
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-
-if not GEMINI_API_KEY:
-    raise ValueError("❌ GEMINI_API_KEY not found. Set it in config/api_config.json or as environment variable")
-
-# Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Load Table Configuration
-TABLE_CONFIG_PATH = CONFIG_DIR / 'table_config.json'
-try:
-    with open(TABLE_CONFIG_PATH, 'r', encoding='utf-8') as f:
-        table_config = json.load(f)
-    print(f"✅ Table config loaded from: {TABLE_CONFIG_PATH}")
-
-    EMBEDDING_MODEL = table_config.get('EMBEDDING_MODEL')
-
-except FileNotFoundError:
-    print(f"⚠️ WARNING: table_config.json not found at {TABLE_CONFIG_PATH}")
-    print("   Using default fallback values...")
-    EMBEDDING_MODEL = 'paraphrase-multilingual-MiniLM-L12-v2'
-
-# Validate Configuration
-if not all([EMBEDDING_MODEL]):
-    raise ValueError("❌ Missing required configuration values in table_config.json")
-
-os.environ['EMBEDDING_MODEL'] = EMBEDDING_MODEL
-
-
-# =========================
 # Global variables
-# =========================
 model = None
 collection = None
 
-
-def initialize():
-    """Initialize embedding model and Milvus connection"""
+def initialize_services(cfg: PipelineConfig):
+    """
+    Initialize Gemini API, embedding model, and Milvus connection.
+    """
     global model, collection
 
-    print("🚀 Loading embedding model...")
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    # Configure Gemini
+    GEMINI_API_KEY = cfg.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "❌ GEMINI_API_KEY not found. Set it in config or as environment variable"
+        )
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info("✅ Gemini API configured successfully")
 
-    print("🔌 Connecting to Milvus...")
-    connections.connect(alias="default", host='localhost', port='19530')
+    # Initialize embedding model
+    embedding_model = cfg.EMBEDDING_MODEL or "paraphrase-multilingual-MiniLM-L12-v2"
+    print(f"🚀 Loading embedding model: {embedding_model}...")
+    model = SentenceTransformer(embedding_model)
 
-    collection = Collection("real_estate_properties")
+    # Connect to Milvus
+    print(f"🔌 Connecting to Milvus at {cfg.MILVUS_HOST}:{cfg.MILVUS_PORT}...")
+    connections.connect(alias="default", host=cfg.MILVUS_HOST, port=str(cfg.MILVUS_PORT))
+
+    # Load collection
+    collection = Collection(cfg.MILVUS_COLLECTION_NAME)
     collection.load()
     print("✅ Initialization complete!")
 
-
-# =========================
 # Routes
-# =========================
 @app.route('/')
 def index():
     """Render Arabic search UI"""
     return render_template('ui.html')
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
 
 
 @app.route('/search', methods=['POST'])
@@ -272,5 +241,5 @@ def stats():
 
 
 if __name__ == '__main__':
-    initialize()
+    initialize_services(config)
     app.run(debug=True, host='0.0.0.0', port=5000)

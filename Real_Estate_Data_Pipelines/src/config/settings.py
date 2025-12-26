@@ -32,6 +32,8 @@ class PipelineConfig(BaseModel):
     AWS_SECRET_ACCESS_KEY: str =  "",
     AWS_REGION: str =  ""
 
+    GEMINI_API_KEY: str = ""
+
     # Paths
     PROJECT_ROOT: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3])
     CONFIG_DIR: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "Configs")
@@ -64,6 +66,9 @@ def load_config() -> PipelineConfig:
         os.environ['AWS_SECRET_ACCESS_KEY'] = config_data["AWS_SECRET_ACCESS_KEY"]
     if "AWS_REGION" in config_data and config_data["AWS_REGION"]:
         os.environ['AWS_DEFAULT_REGION'] = config_data["AWS_REGION"]
+
+    if "GEMINI_API_KEY" in config_data and config_data["GEMINI_API_KEY"]:
+        os.environ['GEMINI_API_KEY'] = config_data["GEMINI_API_KEY"]
 
     return PipelineConfig(**config_data)
 

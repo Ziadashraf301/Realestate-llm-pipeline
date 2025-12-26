@@ -32,3 +32,4 @@ build
 ../.tmp_dagster_home*
 ../raw_data/*.json
 ../logs/*.log
+notebooks

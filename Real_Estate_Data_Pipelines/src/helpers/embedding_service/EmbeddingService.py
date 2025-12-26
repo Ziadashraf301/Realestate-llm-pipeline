@@ -17,21 +17,21 @@ class EmbeddingService:
 
         self.logger.info(f"✅ Model loaded (dimension: {self.embedding_dim})")
     
-    def encode(self, text: str, normalize: bool = True) -> np.ndarray:
+    def encode(self, text: str, convert_to_numpy=True, normalize_embeddings=True) -> np.ndarray:
         """Generate embedding for text"""
         return self.model.encode(
             text, 
-            convert_to_numpy=True, 
-            normalize_embeddings=normalize
+            convert_to_numpy=convert_to_numpy, 
+            normalize_embeddings=normalize_embeddings
         )
-    
-    def encode_batch(self, texts: List[str], normalize: bool = True, 
+
+    def encode_batch(self, texts: List[str], convert_to_numpy=True, normalize_embeddings: bool = True, 
                     batch_size: int = 32) -> List[np.ndarray]:
         """Generate embeddings for multiple texts"""
         return self.model.encode(
             texts,
-            convert_to_numpy=True,
-            normalize_embeddings=normalize,
+            convert_to_numpy=convert_to_numpy,
+            normalize_embeddings=normalize_embeddings,
             batch_size=batch_size,
             show_progress_bar=True
         )

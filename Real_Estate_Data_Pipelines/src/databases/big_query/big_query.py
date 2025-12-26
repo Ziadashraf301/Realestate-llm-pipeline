@@ -294,59 +294,9 @@ class Big_Query_Database():
                 url,
                 
                 -- Simplified Arabic text cleaning using UDF-style approach
-                TRIM(
-                    REGEXP_REPLACE(
-                        REGEXP_REPLACE(
-                            REGEXP_REPLACE(
-                                REGEXP_REPLACE(
-                                    REGEXP_REPLACE(
-                                        REGEXP_REPLACE(COALESCE(title, ''), r'[إأآ]', 'ا'),
-                                        r'[ىي]', 'ي'
-                                    ),
-                                    r'[ؤئ]', 'ء'
-                                ),
-                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
-                            ),
-                            r'\s+', ' '
-                        )
-                    )
-                ) AS title_cleaned,
-                
-                TRIM(
-                    REGEXP_REPLACE(
-                        REGEXP_REPLACE(
-                            REGEXP_REPLACE(
-                                REGEXP_REPLACE(
-                                    REGEXP_REPLACE(
-                                        REGEXP_REPLACE(COALESCE(description, ''), r'[إأآ]', 'ا'),
-                                        r'[ىي]', 'ي'
-                                    ),
-                                    r'[ؤئ]', 'ء'
-                                ),
-                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
-                            ),
-                            r'\s+', ' '
-                        )
-                    )
-                ) AS description_cleaned,
-                
-                TRIM(
-                    REGEXP_REPLACE(
-                        REGEXP_REPLACE(
-                            REGEXP_REPLACE(
-                                REGEXP_REPLACE(
-                                    REGEXP_REPLACE(
-                                        REGEXP_REPLACE(COALESCE(address, ''), r'[إأآ]', 'ا'),
-                                        r'[ىي]', 'ي'
-                                    ),
-                                    r'[ؤئ]', 'ء'
-                                ),
-                                r'[▪•●◼◾▫◽،/!؟💰:()+.,-"\']|[a-zA-Z]', ' '
-                            ),
-                            r'\s+', ' '
-                        )
-                    )
-                ) AS address_cleaned,
+                TRIM(COALESCE(title, '')) AS title_cleaned,
+                TRIM(COALESCE(description, '')) AS description_cleaned,
+                TRIM(COALESCE(address, '')) AS address_cleaned,
                 
                 -- Numeric fields with validation
                 CASE 
