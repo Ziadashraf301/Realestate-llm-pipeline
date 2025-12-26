@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer
 from typing import List
 import numpy as np
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 
 class EmbeddingService:
     """Handles embedding generation"""

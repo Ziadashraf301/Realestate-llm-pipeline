@@ -1,6 +1,6 @@
 from pymilvus import MilvusClient
 from typing import List, Dict, Any
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 from .schemes import get_property_schema
 from ..db_models import PropertyVectorsModel
 
@@ -40,12 +40,8 @@ class Milvus_VectorDatabase():
             raise RuntimeError("Not connected. Call connect() first.")
         
         try:
-            # Check if collection exists
-            if self.client.has_collection(self.collection_name):
-                self.logger.info(f"📂 Collection {self.collection_name} already exists")
-                
+            if self.load_collection(self.collection_name):
                 # Load collection for querying
-                self.client.load_collection(self.collection_name)
                 self.logger.info(f"✅ Collection {self.collection_name} loaded and ready")
                 return
             
@@ -102,28 +98,6 @@ class Milvus_VectorDatabase():
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create collection: {e}")
-            raise
-    
-        
-    def get_collection_stats(self):
-        """Get statistics about the vector database"""
-        if not self.client:
-            raise RuntimeError("Not connected. Call connect() first.")
-        
-        try:
-            stats = self.client.get_collection_stats(self.collection_name)
-            count = stats['row_count']
-            
-            self.logger.info("📊 MILVUS VECTOR DATABASE STATISTICS")
-            self.logger.info(f"Collection name:      {self.collection_name}")
-            self.logger.info(f"Total properties:     {count:,}")
-            self.logger.info(f"Embedding dimension:  {self.embedding_dim}")
-            self.logger.info(f"Metric type:          COSINE similarity")
-            
-            return count
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to get collection stats: {e}")
             raise
 
     def delete_collection(self):
@@ -287,4 +261,114 @@ class Milvus_VectorDatabase():
             
         except Exception as e:
             self.logger.error(f"❌ Failed to fetch property_ids: {e}")      
+            raise
+
+    def load_collection(self):
+        """Load collection into memory for querying"""
+        if not self.client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        
+        try:
+            if self.client.has_collection(self.collection_name):
+                self.client.load_collection(self.collection_name)
+                self.logger.info(f"✅ Collection '{self.collection_name}' loaded and ready")
+                return True
+            else:
+                self.logger.error(f"❌ Collection '{self.collection_name}' does not exist!")
+                return False
+        except Exception as e:
+            self.logger.error(f"❌ Error loading collection: {e}")
+            raise
+
+
+    def search_vectors(self, query_embedding: List[float], filter_expr: str = None, 
+                    limit: int = 10, output_fields: List[str] = None,
+                    nprobe: int = 64) -> List[Dict[str, Any]]:
+        """
+        Search for similar vectors in the collection.
+        
+        Args:
+            query_embedding: Query vector embedding
+            filter_expr: Filter expression for metadata filtering
+            limit: Number of results to return
+            output_fields: List of fields to return in results
+            nprobe: Number of clusters to search (higher = more accurate but slower)
+        
+        Returns:
+            List of formatted search results with similarity scores
+        """
+        if not self.client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        
+        try:
+            # Default output fields if none provided
+            if output_fields is None:
+                output_fields = [
+                    "property_id", "title", "location", "property_type",
+                    "listing_type", "price_egp", "bedrooms", "bathrooms",
+                    "area_sqm", "url", "text"
+                ]
+            
+            # Prepare search parameters
+            search_params = {
+                "metric_type": "COSINE",
+                "params": {"nprobe": nprobe}
+            }
+            
+            # Perform search
+            results = self.client.search(
+                collection_name=self.collection_name,
+                data=[query_embedding],
+                anns_field="embedding",
+                search_params=search_params,
+                limit=limit,
+                filter=filter_expr,
+                output_fields=output_fields
+            )
+            
+            # Format results
+            formatted_results = []
+            for hits in results:
+                for hit in hits:
+                    # Calculate similarity from distance (COSINE: similarity = 1 - distance)
+                    similarity = max(0, 1 - hit['distance'])
+                    
+                    result = {
+                        'distance': hit['distance'],
+                        'similarity': round(similarity, 3)
+                    }
+                    
+                    # Add all entity fields
+                    for field in output_fields:
+                        result[field] = hit['entity'].get(field)
+                    
+                    formatted_results.append(result)
+            
+            self.logger.info(f"🔍 Found {len(formatted_results)} results")
+            return formatted_results
+            
+        except Exception as e:
+            self.logger.error(f"❌ Search failed: {e}")
+            raise
+
+
+    def get_collection_stats(self):
+        """Get statistics about the vector database"""
+        if not self.client:
+            raise RuntimeError("Not connected. Call connect() first.")
+        
+        try:
+            stats = self.client.get_collection_stats(self.collection_name)
+            count = stats['row_count']
+            
+            self.logger.info("📊 MILVUS VECTOR DATABASE STATISTICS")
+            self.logger.info(f"Collection name:      {self.collection_name}")
+            self.logger.info(f"Total properties:     {count:,}")
+            self.logger.info(f"Embedding dimension:  {self.embedding_dim}")
+            self.logger.info(f"Metric type:          COSINE similarity")
+            
+            return count
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to get collection stats: {e}")
             raise

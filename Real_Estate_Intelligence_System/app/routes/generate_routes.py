@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.generation_service import generate_summary_gemini
+from Real_Estate_Intelligence_System.app.services.generation_service import generate_summary_gemini
 
 generate_bp = Blueprint('generate_bp', __name__)
 

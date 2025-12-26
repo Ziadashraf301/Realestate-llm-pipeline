@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.search_service import search_properties, get_collection_count
+from Real_Estate_Intelligence_System.app.services.search_service import search_properties, get_collection_count
 
 search_bp = Blueprint('search_bp', __name__)
 

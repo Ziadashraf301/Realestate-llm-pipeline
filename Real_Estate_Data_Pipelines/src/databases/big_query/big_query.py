@@ -5,7 +5,7 @@ import json as json_lib
 from datetime import datetime
 import time
 from typing import List, Optional
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 from .schemes import PropertySchema
 from ..db_models import PropertyModel
 

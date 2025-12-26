@@ -1,4 +1,4 @@
-from app import create_app
+from Real_Estate_Intelligence_System.app import create_app
 
 app = create_app()
 
