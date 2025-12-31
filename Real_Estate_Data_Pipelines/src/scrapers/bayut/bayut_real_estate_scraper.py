@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 import re
 import hashlib
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 
 class BAYUTRealEstateScraper:
     """BAYUT Real Estate Scraper for Egyptian real estate with deep page scraping"""

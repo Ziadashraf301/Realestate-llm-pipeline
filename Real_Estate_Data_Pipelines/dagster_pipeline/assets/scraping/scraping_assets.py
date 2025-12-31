@@ -2,8 +2,8 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
-from src.config import config
-from resources.config_resources import ScraperResource
+from Real_Estate_Data_Pipelines.src.config import config
+from Real_Estate_Data_Pipelines.dagster_pipeline.resources.config_resources import ScraperResource
 from .scraping_config import SCRAPING_CONFIG
 from pathlib import Path
 
@@ -22,9 +22,9 @@ def scrape_city_listing(
         context.log.info(f"🏠 Starting {provider} {city.title()} {listing_type} scraping...")
         
         # Import modules
-        from src.databases import Big_Query_Database
-        from src.helpers import save_to_json, scraper_report, upload_to_s3
-        from src.logger import LoggerFactory
+        from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database
+        from Real_Estate_Data_Pipelines.src.helpers import save_to_json, scraper_report, upload_to_s3
+        from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
         
         # Initialize logger
         logger = LoggerFactory.create_logger(log_dir=scraper_resource.log_dir)
@@ -168,8 +168,8 @@ def get_scraping_asset_names():
 
 def get_provider_object(provider_name: str):    
     """Get mapping of providers to their objects"""
-    from src.scrapers import AQARMAPRealEstateScraper
-    from src.scrapers import BAYUTRealEstateScraper
+    from Real_Estate_Data_Pipelines.src.scrapers import AQARMAPRealEstateScraper
+    from Real_Estate_Data_Pipelines.src.scrapers import BAYUTRealEstateScraper
 
     provider_map = {
         "aqarmap": AQARMAPRealEstateScraper,

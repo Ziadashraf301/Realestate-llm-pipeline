@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from dagster import asset, OpExecutionContext, RetryPolicy
-from resources.config_resources import MartResource
+from Real_Estate_Data_Pipelines.dagster_pipeline.resources.config_resources import MartResource
 from .mart_config import MART_CONFIG
 
 
@@ -24,8 +24,8 @@ def transform_mart_table(
     try:
         context.log.info(f"🔄 Starting {mart_name} transformation...")
         
-        from src.etl import PropertyMartBuilder
-        from src.databases import Big_Query_Database
+        from Real_Estate_Data_Pipelines.src.etl import PropertyMartBuilder
+        from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database
         
         # Initialize database
         db = Big_Query_Database(

@@ -4,13 +4,13 @@ from datetime import datetime
 from dagster import asset, AssetExecutionContext, RetryPolicy
 from pathlib import Path
 
-from src.config import config
+from Real_Estate_Data_Pipelines.src.config import config
 
 # Import all scraping assets dynamically
-from assets.scraping.scraping_assets import get_scraping_asset_names
+from Real_Estate_Data_Pipelines.dagster_pipeline.assets.scraping.scraping_assets import get_scraping_asset_names
 
 # Import all mart assets dynamically
-from assets.mart.mart_assets import get_mart_asset_names
+from Real_Estate_Data_Pipelines.dagster_pipeline.assets.mart.mart_assets import get_mart_asset_names
 
 
 # Generate dynamic dependencies
@@ -30,7 +30,7 @@ def scraping_summary(context: AssetExecutionContext):
     Loads results from Dagster's asset storage.
     """
 
-    from src.helpers import upload_to_s3
+    from Real_Estate_Data_Pipelines.src.helpers import upload_to_s3
 
     all_results = []
     scraping_asset_names = []
@@ -140,7 +140,7 @@ def mart_transformation_summary(context: AssetExecutionContext):
     Generate summary of all mart transformation operations.
     Loads results from Dagster's asset storage.
     """
-    from src.helpers import upload_to_s3
+    from Real_Estate_Data_Pipelines.src.helpers import upload_to_s3
 
     all_results = []
     mart_asset_names_list = []
@@ -240,7 +240,7 @@ def complete_pipeline_summary(context: AssetExecutionContext):
     """
     Generate complete pipeline summary including all stages.
     """
-    from src.helpers import upload_to_s3
+    from Real_Estate_Data_Pipelines.src.helpers import upload_to_s3
     
     # Load summaries from storage
     from dagster import AssetKey

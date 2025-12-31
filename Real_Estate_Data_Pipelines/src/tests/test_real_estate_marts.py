@@ -1,8 +1,8 @@
 import warnings
-from src.config import config
-from src.logger import LoggerFactory
-from src.databases import Big_Query_Database
-from src.etl import PropertyMartBuilder
+from Real_Estate_Data_Pipelines.src.config import config
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database
+from Real_Estate_Data_Pipelines.src.etl import PropertyMartBuilder
 
 
 def test_mart_builder_operations():

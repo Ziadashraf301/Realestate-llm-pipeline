@@ -1,10 +1,10 @@
 import warnings
 from pathlib import Path
-from src.scrapers import AQARMAPRealEstateScraper
-from src.config import config
-from src.databases import Big_Query_Database
-from src.logger import LoggerFactory
-from src.helpers import save_to_json, scraper_report, upload_to_s3
+from Real_Estate_Data_Pipelines.src.scrapers import AQARMAPRealEstateScraper
+from Real_Estate_Data_Pipelines.src.config import config
+from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.helpers import save_to_json, scraper_report, upload_to_s3
 
 
 def test_scrapers_operations():

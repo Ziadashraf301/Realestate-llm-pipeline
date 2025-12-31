@@ -1,7 +1,7 @@
 """Vector processing assets for real estate pipeline"""
 from datetime import datetime
 from dagster import asset, OpExecutionContext, RetryPolicy, Output, MetadataValue
-from resources.config_resources import VectorResource
+from Real_Estate_Data_Pipelines.dagster_pipeline.resources.config_resources import VectorResource
 
 
 @asset(
@@ -15,11 +15,10 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
     try:
         context.log.info("🤖 Starting vector processing from mart...")
         
-        from src.etl import PropertyVectorBuilder
-        from src.databases import Big_Query_Database
-        from src.databases import Milvus_VectorDatabase
-        from src.helpers import EmbeddingService
-        from src.helpers import TextPreprocessor
+        from Real_Estate_Data_Pipelines.src.etl import PropertyVectorBuilder
+        from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database
+        from Real_Estate_Data_Pipelines.src.databases import Milvus_VectorDatabase
+        from Real_Estate_Data_Pipelines.src.helpers import EmbeddingService, TextPreprocessor
         
         # Initialize components
         embedding_service = EmbeddingService(

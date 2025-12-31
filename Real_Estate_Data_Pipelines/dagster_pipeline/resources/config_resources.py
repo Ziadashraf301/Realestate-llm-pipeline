@@ -1,7 +1,7 @@
 """Dagster configurable resources"""
 from dagster import ConfigurableResource
 from pydantic import Field
-from src.config import config
+from Real_Estate_Data_Pipelines.src.config import config
 
 class ScraperResource(ConfigurableResource):
     """Resource for scraper configuration"""

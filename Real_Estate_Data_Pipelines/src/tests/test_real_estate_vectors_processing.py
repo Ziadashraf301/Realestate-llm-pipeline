@@ -1,12 +1,10 @@
-import os
 import warnings
-from pathlib import Path
-from src.config import config
-from src.logger import LoggerFactory
-from src.databases import Big_Query_Database, Milvus_VectorDatabase
-from src.etl import PropertyVectorBuilder
-from src.helpers import TextPreprocessor
-from src.helpers import EmbeddingService
+from Real_Estate_Data_Pipelines.src.config import config
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.databases import Big_Query_Database, Milvus_VectorDatabase
+from Real_Estate_Data_Pipelines.src.etl import PropertyVectorBuilder
+from Real_Estate_Data_Pipelines.src.helpers import TextPreprocessor
+from Real_Estate_Data_Pipelines.src.helpers import EmbeddingService
 
 
 def test_vector_pipeline_operations():

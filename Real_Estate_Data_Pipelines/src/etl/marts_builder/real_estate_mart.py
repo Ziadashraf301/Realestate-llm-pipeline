@@ -3,7 +3,7 @@ Real Estate Property Mart Builder
 Transforms raw scraped property data into a clean, analytics-ready mart tables.
 """
 
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 
 class PropertyMartBuilder:
     """Creates optimized property mart tables from scraped data for analytics."""

@@ -40,7 +40,7 @@ class Milvus_VectorDatabase():
             raise RuntimeError("Not connected. Call connect() first.")
         
         try:
-            if self.load_collection(self.collection_name):
+            if self.load_collection():
                 # Load collection for querying
                 self.logger.info(f"✅ Collection {self.collection_name} loaded and ready")
                 return
@@ -263,7 +263,7 @@ class Milvus_VectorDatabase():
             self.logger.error(f"❌ Failed to fetch property_ids: {e}")      
             raise
 
-    def load_collection(self):
+    def load_collection(self) -> bool:
         """Load collection into memory for querying"""
         if not self.client:
             raise RuntimeError("Not connected. Call connect() first.")

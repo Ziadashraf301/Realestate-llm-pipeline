@@ -15,20 +15,20 @@ RUN apt-get update && apt-get install -y \
 # Set environment variables
 ENV DAGSTER_HOME=/opt/dagster/dagster_home
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/opt/dagster/Real_Estate_Data_Pipelines:/opt/dagster/Real_Estate_Data_Pipelines/app:/opt/dagster/Real_Estate_Data_Pipelines/src
+ENV PYTHONPATH=/opt/dagster/Real_Estate_Data_Pipelines:/opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/Real_Estate_Data_Pipelines/src
 
 # Create directories
-RUN mkdir -p /opt/dagster/Real_Estate_Data_Pipelines/app \
+RUN mkdir -p /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline \
              /opt/dagster/Real_Estate_Data_Pipelines/src \
              /opt/dagster/Real_Estate_Data_Pipelines/raw_data \
              /opt/dagster/Real_Estate_Data_Pipelines/logs \
              /opt/dagster/dagster_home
 
 # Set working directory
-WORKDIR /opt/dagster/Real_Estate_Data_Pipelines/app
+WORKDIR /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline
 
 # Copy requirements
-COPY requirements.txt /opt/dagster/Real_Estate_Data_Pipelines/app/requirements.txt
+COPY requirements.txt /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline/requirements.txt
 
 # Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \

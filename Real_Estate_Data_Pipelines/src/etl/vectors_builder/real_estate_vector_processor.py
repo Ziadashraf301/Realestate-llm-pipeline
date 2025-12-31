@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 import json
 from pathlib import Path
-from src.logger import LoggerFactory
+from Real_Estate_Data_Pipelines.src.logger import LoggerFactory
 
 
 class PropertyVectorBuilder:
