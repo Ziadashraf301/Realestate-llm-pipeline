@@ -53,7 +53,7 @@ def generate_summary_gemini(query, properties):
 
         اجعل ردك قصيراً (200-300 كلمة فقط) ومباشراً."""
 
-    model_ai = genai.GenerativeModel("gemini-2.0-flash-exp")
+    model_ai = genai.GenerativeModel("gemini-2.0-flash")
     response = model_ai.generate_content(
         prompt,
         generation_config=genai.types.GenerationConfig(
