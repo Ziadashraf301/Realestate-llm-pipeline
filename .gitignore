@@ -33,3 +33,4 @@ build
 ../raw_data/*.json
 ../logs/*.log
 notebooks
+server
