@@ -25,12 +25,12 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ../dagster_pipeline:/opt/dagster/Real_Estate_Data_Pipelines/app
-      - ../src:/opt/dagster/Real_Estate_Data_Pipelines/src
-      - ../raw_data:/opt/dagster/Real_Estate_Data_Pipelines/raw_data
-      - ../logs:/opt/dagster/Real_Estate_Data_Pipelines/logs
+      - ../dagster_pipeline:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline
+      - ../src:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/src
+      - ../raw_data:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/raw_data
+      - ../logs:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/logs
       - ../volumes/dagster:/opt/dagster/dagster_home
-      - ../../Configs:/opt/dagster/Configs
+      - ../../Configs:/opt/dagster/real_estate/Configs
     env_file:
       - ./env/.env.dagster
     depends_on:
@@ -44,7 +44,7 @@ services:
       - pipeline_net
     command: >
       sh -c "dagster-daemon run &
-             dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/Real_Estate_Data_Pipelines/app/workspace.yaml"
+             dagster-webserver -h 0.0.0.0 -p 3000 -w /opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline/workspace.yaml"
     
   # etcd for Milvus
   etcd:

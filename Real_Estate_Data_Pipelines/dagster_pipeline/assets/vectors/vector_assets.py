@@ -40,7 +40,8 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
             milvus_host=vector_resource.milvus_host,
             milvus_port=vector_resource.milvus_port,
             collection_name=vector_resource.milvus_collection_name,
-            embedding_dim=vector_resource.embedding_dim
+            embedding_dim=vector_resource.embedding_dim,
+            embedding_model=vector_resource.embedding_model
         )
         
         milvus_client.connect()

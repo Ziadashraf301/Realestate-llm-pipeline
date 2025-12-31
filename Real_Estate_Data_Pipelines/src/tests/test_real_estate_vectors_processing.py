@@ -58,7 +58,8 @@ def test_vector_pipeline_operations():
         milvus_host=cfg.MILVUS_HOST,
         milvus_port=cfg.MILVUS_PORT,
         collection_name=cfg.MILVUS_COLLECTION_NAME,
-        embedding_dim=cfg.EMBEDDING_DIM
+        embedding_dim=cfg.EMBEDDING_DIM,
+        embedding_model=cfg.EMBEDDING_MODEL
     )
     milvus_client.connect()
     

@@ -7,12 +7,13 @@ from ..db_models import PropertyVectorsModel
 class Milvus_VectorDatabase():
 
     def __init__(self, log_dir, milvus_host, milvus_port, 
-                 collection_name, embedding_dim=768):
+                 collection_name, embedding_model, embedding_dim=768):
         self.log_dir = log_dir
         self.milvus_uri = f"http://{milvus_host}:{milvus_port}"
         self.embedding_dim = embedding_dim
-        self.collection_name = f"{collection_name}_{self.embedding_dim}"
-
+        self.embedding_model = embedding_model
+        self.collection_name = f"{collection_name}_{self.embedding_model}_{self.embedding_dim}"
+        
         # Initialize logger
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
         self.client = None

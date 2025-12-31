@@ -18,7 +18,8 @@ def initialize_embedding_model(cfg):
         cfg.MILVUS_HOST, 
         cfg.MILVUS_PORT,
         cfg.MILVUS_COLLECTION_NAME, 
-        embedding_dim=cfg.EMBEDDING_DIM
+        embedding_dim=cfg.EMBEDDING_DIM,
+        embedding_model=cfg.EMBEDDING_MODEL
     )
     
     vectordb.connect()

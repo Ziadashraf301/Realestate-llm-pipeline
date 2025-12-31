@@ -15,20 +15,20 @@ RUN apt-get update && apt-get install -y \
 # Set environment variables
 ENV DAGSTER_HOME=/opt/dagster/dagster_home
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/opt/dagster/Real_Estate_Data_Pipelines:/opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/Real_Estate_Data_Pipelines/src
+ENV PYTHONPATH=/opt/dagster/real_estate/Real_Estate_Data_Pipelines:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/src
 
 # Create directories
-RUN mkdir -p /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline \
-             /opt/dagster/Real_Estate_Data_Pipelines/src \
-             /opt/dagster/Real_Estate_Data_Pipelines/raw_data \
-             /opt/dagster/Real_Estate_Data_Pipelines/logs \
+RUN mkdir -p /opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline \
+             /opt/dagster/real_estate/Real_Estate_Data_Pipelines/src \
+             /opt/dagster/real_estate/Real_Estate_Data_Pipelines/raw_data \
+             /opt/dagster/real_estate/Real_Estate_Data_Pipelines/logs \
              /opt/dagster/dagster_home
 
 # Set working directory
-WORKDIR /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline
+WORKDIR /opt/dagster/real_estate
 
 # Copy requirements
-COPY requirements.txt /opt/dagster/Real_Estate_Data_Pipelines/dagster_pipeline/requirements.txt
+COPY requirements.txt /opt/dagster/real_estate/requirements.txt
 
 # Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
@@ -42,7 +42,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:3000/server_info || exit 1
 
 
-ENV PYTHONPATH=/opt/dagster/Real_Estate_Data_Pipelines:/opt/dagster/Real_Estate_Data_Pipelines/app:/opt/dagster/Real_Estate_Data_Pipelines/src
+ENV PYTHONPATH=/opt/dagster/real_estate:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/src
 
 # Default command
-CMD ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/opt/dagster/Real_Estate_Data_Pipelines/app/workspace.yaml"]
+CMD ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline/workspace.yaml"]
