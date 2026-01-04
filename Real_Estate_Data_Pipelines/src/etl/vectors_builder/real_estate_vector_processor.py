@@ -49,40 +49,56 @@ class PropertyVectorBuilder:
             self.vectordb_client = vectordb_client
 
     
-    def transform_properties(self, properties: List[Dict]) -> List[Dict]:
+    def transform_properties(self, properties: List[Dict], embed_batch_size: int = 64,) -> List[Dict]:
         """
-        Transform properties: create searchable text + generate embeddings.
+        Transform properties in batches:
+        - create searchable text
+        - generate embeddings in batches
         """
         from tqdm import tqdm
         
         transformed = []
-        
-        for prop in tqdm(properties, desc="Processing"):
+
+        texts = []
+        valid_props = []
+
+        # Prepare texts
+        for prop in tqdm(properties, desc="Preparing text"):
             try:
-                # Create searchable text
                 text = self.preprocessor.create_searchable_text(prop)
-                
+
                 if not text or len(text) < 10:
                     self.logger.warning(
                         f"Property {prop.get('property_id')} has insufficient text"
                     )
                     continue
-                
-                # Generate embedding
-                embedding = self.embedder.encode(text, normalize=True)
-                
-                # Add to property
-                prop['text'] = text
-                prop['embedding'] = embedding.tolist()
-                
-                transformed.append(prop)
-                
+
+                texts.append(text)
+                valid_props.append(prop)
+
             except Exception as e:
                 self.logger.error(
-                    f"Transform failed for {prop.get('property_id')}: {e}"
+                    f"Text preprocessing failed for {prop.get('property_id')}: {e}"
                 )
-                continue
+
+        if not texts:
+            return []
         
+        # Embed in batches
+        self.logger.info(f"Generating embeddings for {len(texts):,} properties...")
+
+        embeddings = self.embedder.encode_batch(
+            texts,
+            batch_size=embed_batch_size,
+            normalize=True
+        )
+
+        # Attach embeddings back
+        for prop, text, embedding in zip(valid_props, texts, embeddings):
+            prop["text"] = text
+            prop["embedding"] = embedding.tolist()
+            transformed.append(prop)
+
         self.logger.info(f"✅ Transformed {len(transformed):,} properties")
         return transformed
 
@@ -113,7 +129,7 @@ class PropertyVectorBuilder:
         
         # Transform (preprocess + embed)
         self.logger.info(f"Transforming {len(properties):,} properties...")
-        transformed_properties = self.transform_properties(properties)
+        transformed_properties = self.transform_properties(properties, batch_size)
         
         # Load into VECTORDB
         self.logger.info(f"Loading into VECTORDB...")
