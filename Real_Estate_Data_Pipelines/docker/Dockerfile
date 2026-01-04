@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Set environment variables
 ENV DAGSTER_HOME=/opt/dagster/dagster_home
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/opt/dagster/real_estate/Real_Estate_Data_Pipelines:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/src
+ENV PYTHONPATH=/opt/dagster/real_estate
 
 # Create directories
 RUN mkdir -p /opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline \
@@ -41,8 +41,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:3000/server_info || exit 1
 
-
-ENV PYTHONPATH=/opt/dagster/real_estate:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline:/opt/dagster/real_estate/Real_Estate_Data_Pipelines/src
 
 # Default command
 CMD ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/opt/dagster/real_estate/Real_Estate_Data_Pipelines/dagster_pipeline/workspace.yaml"]

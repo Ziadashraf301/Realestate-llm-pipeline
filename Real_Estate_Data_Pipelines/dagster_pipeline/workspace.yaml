@@ -1,3 +1,5 @@
 # Workspace configuration for Dagster
 load_from:
-  - python_module: Real_Estate_Data_Pipelines.dagster_pipeline.definitions
+  - python_module:
+      module_name: Real_Estate_Data_Pipelines.dagster_pipeline.definitions
+      working_directory: /opt/dagster/real_estate
