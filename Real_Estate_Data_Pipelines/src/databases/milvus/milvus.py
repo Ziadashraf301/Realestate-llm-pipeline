@@ -12,8 +12,11 @@ class Milvus_VectorDatabase():
         self.milvus_uri = f"http://{milvus_host}:{milvus_port}"
         self.embedding_dim = embedding_dim
         self.embedding_model = embedding_model
-        self.collection_name = f"{collection_name}_{self.embedding_model}_{self.embedding_dim}"
-        
+        self.collection_name = (
+            f"{collection_name}_"
+            f"{self.embedding_model.replace('-', '_').replace('/', '_')}_"
+            f"{self.embedding_dim}"
+)        
         # Initialize logger
         self.logger = LoggerFactory.create_logger(log_dir=self.log_dir)
         self.client = None
