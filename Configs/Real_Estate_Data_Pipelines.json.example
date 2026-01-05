@@ -12,6 +12,7 @@
   "MILVUS_HOST": "",
   "MILVUS_PORT": "",
   "MILVUS_COLLECTION_NAME": "",
+  "OLLAMA_URL": "https://vasoconstrictive-goggly-kailyn.ngrok-free.dev",
   "EMBEDDING_MODEL": "paraphrase-multilingual-MiniLM-L12-v2",
   "EMBEDDING_DIM": 384,
   "BATCH_SIZE": 1000,

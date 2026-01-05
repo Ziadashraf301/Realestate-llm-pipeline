@@ -30,6 +30,7 @@ class VectorResource(ConfigurableResource):
     milvus_host: str = Field(default=config.MILVUS_HOST)
     milvus_port: str = Field(default=config.MILVUS_PORT)
     milvus_collection_name: str = Field(default=config.MILVUS_COLLECTION_NAME)
+    ollama_url: str = Field(default=config.OLLAMA_URL)
     embedding_model: str = Field(default=config.EMBEDDING_MODEL)
     embedding_dim: int = Field(default=config.EMBEDDING_DIM)
     batch_size: int = Field(default=config.BATCH_SIZE)

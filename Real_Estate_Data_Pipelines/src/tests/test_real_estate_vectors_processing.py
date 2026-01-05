@@ -33,6 +33,7 @@ def test_vector_pipeline_operations():
     # Embedding Service
     logger.info(f"Loading embedding model: {cfg.EMBEDDING_MODEL}...")
     embedding_service = EmbeddingService(
+        ollama_url = cfg.OLLAMA_URL,
         model_name=cfg.EMBEDDING_MODEL,
         log_dir=cfg.LOG_DIR,
     )

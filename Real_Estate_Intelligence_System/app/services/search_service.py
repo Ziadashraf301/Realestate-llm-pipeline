@@ -10,7 +10,7 @@ def initialize_embedding_model(cfg):
     global model, vectordb
     
     # Initialize embedding service
-    model = EmbeddingService(cfg.EMBEDDING_MODEL, log_dir=cfg.LOG_DIR)
+    model = EmbeddingService(cfg.OLLAMA_URL, cfg.EMBEDDING_MODEL, log_dir=cfg.LOG_DIR)
     
     # Initialize and connect to Milvus
     vectordb = Milvus_VectorDatabase(

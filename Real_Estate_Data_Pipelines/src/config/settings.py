@@ -23,6 +23,7 @@ class PipelineConfig(BaseModel):
     MILVUS_HOST: str = "localhost"
     MILVUS_PORT: str = "19530"
     MILVUS_COLLECTION_NAME: str = "real_estate_vectors"
+    OLLAMA_URL: str
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     GENERATION_MODEL: str
     EMBEDDING_DIM: int = 384
