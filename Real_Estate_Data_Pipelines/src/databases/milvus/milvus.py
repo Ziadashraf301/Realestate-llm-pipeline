@@ -14,7 +14,7 @@ class Milvus_VectorDatabase():
         self.embedding_model = embedding_model
         self.collection_name = (
             f"{collection_name}_"
-            f"{self.embedding_model.replace(":","_").replace('-', '_').replace('/', '_')}_"
+            f"{self.embedding_model.replace(':','_').replace('-', '_').replace('/', '_')}_"
             f"{self.embedding_dim}"
 )        
         # Initialize logger
