@@ -66,7 +66,7 @@ def test_vector_pipeline_operations():
     
     # Create collection if not exists
     logger.info("Checking Milvus collection...")
-    milvus_client.create_collection()
+    milvus_client.create_collection() 
 
     # Text Preprocessor
     logger.info("Initializing text preprocessor...")
