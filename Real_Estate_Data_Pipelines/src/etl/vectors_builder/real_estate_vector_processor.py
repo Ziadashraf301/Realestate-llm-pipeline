@@ -89,6 +89,7 @@ class PropertyVectorBuilder:
 
         embeddings = self.embedder.encode_batch(
             texts,
+            is_query = False,
             batch_size=embed_batch_size,
             normalize=True
         )

@@ -22,12 +22,9 @@ def process_to_milvus(context: OpExecutionContext, vector_resource: VectorResour
         
         # Initialize components
         embedding_service = EmbeddingService(
-            ollama_url = vector_resource.ollama_url,
             model_name=vector_resource.embedding_model,
             log_dir=vector_resource.log_dir
         )
-
-        embedding_service.switch_mode('passage')
 
         bigquery_client = Big_Query_Database(
             project_id=vector_resource.project_id,

@@ -10,9 +10,8 @@ def initialize_embedding_model(cfg):
     global model, vectordb
     
     # Initialize embedding service
-    model = EmbeddingService(cfg.OLLAMA_URL, cfg.EMBEDDING_MODEL, log_dir=cfg.LOG_DIR)
+    model = EmbeddingService(cfg.EMBEDDING_MODEL, log_dir=cfg.LOG_DIR)
 
-    model.switch_mode('query')
     
     # Initialize and connect to Milvus
     vectordb = Milvus_VectorDatabase(
@@ -47,6 +46,7 @@ def search_properties(data):
     # Generate query embedding
     query_embedding = model.encode(
         query, 
+        is_query = True,
         convert_to_numpy=True, 
         normalize_embeddings=True
     )
