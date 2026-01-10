@@ -1,6 +1,6 @@
 Flask==2.3.2
 pydantic==2.8.0
-pymilvus==2.3.0
+pymilvus==2.6.2
 sentence-transformers==2.2.2
 torch>=2.0.0
 transformers>=4.35.0
