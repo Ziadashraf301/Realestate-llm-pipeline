@@ -11,6 +11,8 @@ def initialize_embedding_model(cfg):
     
     # Initialize embedding service
     model = EmbeddingService(cfg.OLLAMA_URL, cfg.EMBEDDING_MODEL, log_dir=cfg.LOG_DIR)
+
+    model.switch_mode('query')
     
     # Initialize and connect to Milvus
     vectordb = Milvus_VectorDatabase(

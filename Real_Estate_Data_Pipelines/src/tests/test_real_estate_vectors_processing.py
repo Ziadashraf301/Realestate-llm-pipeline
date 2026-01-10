@@ -37,7 +37,9 @@ def test_vector_pipeline_operations():
         model_name=cfg.EMBEDDING_MODEL,
         log_dir=cfg.LOG_DIR,
     )
-    
+
+    embedding_service.switch_mode('passage')
+
     # BigQuery Client
     logger.info("Connecting to BigQuery...")
     bigquery_client = Big_Query_Database(
