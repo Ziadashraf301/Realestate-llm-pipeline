@@ -21,7 +21,10 @@ def get_redis_pool() -> aioredis.ConnectionPool:
             db=settings.REDIS_DB,
             password=settings.REDIS_PASSWORD or None,
             decode_responses=True,
-            max_connections=30
+            max_connections=50,
+            socket_timeout=5.0,
+            socket_connect_timeout=3.0,
+            retry_on_timeout=True,
         )
         logger.info(
             "redis_singleton_pool_initialized",

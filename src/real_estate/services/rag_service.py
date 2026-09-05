@@ -146,48 +146,60 @@ class RAGService:
 
             # 2. Milvus 2.5 Native Hybrid Search (Dense + BM25 Sparse + RRFRanker)
             t0_retrieval = time.perf_counter()
-            hybrid_hits = await self.vector_repo.hybrid_search(
-                query_vector=query_vector,
-                query_text=query_text,
-                top_k=30,
-                filters=filters,
-            )
+            with MLflowTracer.span(
+                "milvus_hybrid_search",
+                span_type="RETRIEVER",
+                inputs={"query_text": query_text, "filters": filters, "top_k": 30}
+            ) as milvus_span:
+                hybrid_hits = await self.vector_repo.hybrid_search(
+                    query_vector=query_vector,
+                    query_text=query_text,
+                    top_k=30,
+                    filters=filters,
+                )
 
-            # Progressive Relaxation Fallback: if 0 hits match strict multi-scalar filters,
-            # relax secondary filters (price/rooms/area) while STRICTLY PRESERVING location/city constraint.
-            if not hybrid_hits and filters:
-                logger.info("milvus_zero_hits_retrying_with_relaxed_filters", original_filters=filters)
-                # City/Location is the #1 Hard Priority Constraint - never drop location if specified!
-                relaxed_filters = {k: v for k, v in filters.items() if k in ("location", "city", "listing_type", "property_type")}
-                if relaxed_filters != filters:
-                    hybrid_hits = await self.vector_repo.hybrid_search(
-                        query_vector=query_vector,
-                        query_text=query_text,
-                        top_k=30,
-                        filters=relaxed_filters,
-                    )
-                # If still 0 hits, relax property_type/listing_type but STRICTLY STAY within the target city
-                if not hybrid_hits and ("location" in filters or "city" in filters):
-                    city_only_filters = {k: v for k, v in filters.items() if k in ("location", "city")}
-                    if city_only_filters != relaxed_filters:
-                        logger.info("milvus_zero_hits_retrying_within_same_city_only", city_filter=city_only_filters)
+                # Progressive Relaxation Fallback: if 0 hits match strict multi-scalar filters,
+                # relax secondary filters (price/rooms/area) while STRICTLY PRESERVING location/city constraint.
+                if not hybrid_hits and filters:
+                    logger.info("milvus_zero_hits_retrying_with_relaxed_filters", original_filters=filters)
+                    # City/Location is the #1 Hard Priority Constraint - never drop location if specified!
+                    relaxed_filters = {k: v for k, v in filters.items() if k in ("location", "city", "listing_type", "property_type")}
+                    if relaxed_filters != filters:
                         hybrid_hits = await self.vector_repo.hybrid_search(
                             query_vector=query_vector,
                             query_text=query_text,
                             top_k=30,
-                            filters=city_only_filters,
+                            filters=relaxed_filters,
                         )
-                # Only if NO location was specified by the user at all, fall back to unrestricted search
-                elif not hybrid_hits and not ("location" in filters or "city" in filters):
-                    logger.info("milvus_zero_hits_retrying_unrestricted_search")
-                    hybrid_hits = await self.vector_repo.hybrid_search(
-                        query_vector=query_vector,
-                        query_text=query_text,
-                        top_k=30,
-                        filters=None,
-                    )
+                    # If still 0 hits, relax property_type/listing_type but STRICTLY STAY within the target city
+                    if not hybrid_hits and ("location" in filters or "city" in filters):
+                        city_only_filters = {k: v for k, v in filters.items() if k in ("location", "city")}
+                        if city_only_filters != relaxed_filters:
+                            logger.info("milvus_zero_hits_retrying_within_same_city_only", city_filter=city_only_filters)
+                            hybrid_hits = await self.vector_repo.hybrid_search(
+                                query_vector=query_vector,
+                                query_text=query_text,
+                                top_k=30,
+                                filters=city_only_filters,
+                            )
+                    # Only if NO location was specified by the user at all, fall back to unrestricted search
+                    elif not hybrid_hits and not ("location" in filters or "city" in filters):
+                        logger.info("milvus_zero_hits_retrying_unrestricted_search")
+                        hybrid_hits = await self.vector_repo.hybrid_search(
+                            query_vector=query_vector,
+                            query_text=query_text,
+                            top_k=30,
+                            filters=None,
+                        )
 
-            retrieval_latency = (time.perf_counter() - t0_retrieval) * 1000
+                retrieval_latency = (time.perf_counter() - t0_retrieval) * 1000
+                milvus_span.set_outputs({
+                    "candidates_retrieved": len(hybrid_hits),
+                    "latency_ms": round(retrieval_latency, 2),
+                    "fusion_ranker": "RRFRanker(k=60)",
+                    "top_scores": [round(float(h.get("similarity", 0.0)), 4) for h in hybrid_hits[:5]],
+                    "candidate_ids": [h.get("id") for h in hybrid_hits[:5]]
+                })
             logger.info(
                 "milvus_hybrid_retrieval_finished",
                 query_preview=query_text[:60],

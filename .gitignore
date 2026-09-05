@@ -40,3 +40,4 @@ data/
 *.env.example*
 note
 /models
+kpis.json

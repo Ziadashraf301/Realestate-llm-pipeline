@@ -70,9 +70,9 @@ class Settings(BaseSettings):
     ONNX_EMBEDDING_MODEL_PATH: str = "models/onnx/multilingual-e5-small-int8.onnx"
     ONNX_RERANKER_MODEL_PATH: str = "models/onnx/bge-reranker-base-int8.onnx"
 
-    # Google Gemini LLM API (Cloud Fallback: e.g. gemini-2.0-flash, gemini-3.1-preview)
+    # Google Gemini LLM API (Cloud Fallback: e.g. gemini-2.5-flash, gemini-2.0-flash-lite, gemini-3.1-preview)
     GOOGLE_API_KEY: str | None = None
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # User Authentication & Security (JWT + Bcrypt)
     JWT_SECRET_KEY: str = "change_this_to_a_secure_random_hex_key_in_production"

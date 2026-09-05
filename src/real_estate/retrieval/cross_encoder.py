@@ -43,21 +43,17 @@ class OnnxCrossEncoderService:
         # 3. Load Rust-backed tokenizer directly (Zero transformers dependency)
         self.tokenizer = Tokenizer.from_file(str(tokenizer_path))
         self.tokenizer.enable_truncation(max_length=192)
-        self.tokenizer.enable_padding(length=192)
+        # Dynamic padding to max length in current batch (padded to multiple of 8 for AVX2/AVX-512 SIMD vectorization)
+        self.tokenizer.enable_padding(pad_to_multiple_of=8)
 
         logger.info("onnx_reranker_loaded_successfully", provider="CPUExecutionProvider", max_length=192)
 
     def _tokenize_pairs(self, pairs: List[List[str]]) -> dict:
-        """Tokenizes (query, passage) pairs into NumPy arrays for cross-attention."""
-        input_ids = []
-        attention_masks = []
-        token_type_ids = []
-
-        for query, passage in pairs:
-            enc = self.tokenizer.encode(query, passage)
-            input_ids.append(enc.ids)
-            attention_masks.append(enc.attention_mask)
-            token_type_ids.append(enc.type_ids)
+        """Tokenizes (query, passage) pairs in parallel Rust C-threads with dynamic batch padding."""
+        encodings = self.tokenizer.encode_batch(pairs)
+        input_ids = [enc.ids for enc in encodings]
+        attention_masks = [enc.attention_mask for enc in encodings]
+        token_type_ids = [enc.type_ids for enc in encodings]
 
         return {
             "input_ids": np.array(input_ids, dtype=np.int64),
