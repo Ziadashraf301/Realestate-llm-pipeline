@@ -1,0 +1,11 @@
+[core]
+    remote = minio_remote
+    autostage = true
+
+['remote "minio_remote"']
+    url = s3://dvc-storage
+    # Use Docker service name when running inside Docker Compose
+    # Use http://localhost:9000 when running locally (dvc pull/push from host)
+    endpointurl = http://localhost:9000
+    access_key_id = minioadmin
+    secret_access_key = minioadmin

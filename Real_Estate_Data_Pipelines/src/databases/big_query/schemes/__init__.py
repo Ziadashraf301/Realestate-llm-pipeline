@@ -1,1 +1,0 @@
-from .PropertySchema import PropertySchema

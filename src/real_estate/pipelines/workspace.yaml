@@ -1,0 +1,5 @@
+# Workspace configuration for Dagster
+load_from:
+  - python_module:
+      module_name: real_estate.pipelines.definitions
+      working_directory: /opt/dagster/real_estate/src

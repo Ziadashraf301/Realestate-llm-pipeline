@@ -1,0 +1,10 @@
+# Add patterns of files dvc should ignore
++/.git
++/.dvc/cache
++/.dvc/tmp
++/**/__pycache__
++/**/*.pyc
++/.pytest_cache
++/.mypy_cache
++/.ruff_cache
++/.venv

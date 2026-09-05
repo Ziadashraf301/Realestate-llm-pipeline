@@ -19,8 +19,6 @@ __pycache__
 *.egg-info
 dist
 build
-.git
-.gitignore
 *.log
 .vscode
 .idea
@@ -34,3 +32,11 @@ build
 ../logs/*.log
 notebooks
 server
+exports/
+.env
+data/
+*.md
+*.env
+*.env.example*
+note
+/models
